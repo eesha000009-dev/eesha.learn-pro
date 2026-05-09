@@ -2,6 +2,7 @@
 
 import React, { useCallback } from 'react';
 import { useSimulatorStore } from '@/store/simulator-store';
+import { getBoardById } from '@/lib/board-registry';
 import type { CircuitComponent } from '@/types';
 
 interface SchematicViewerProps {
@@ -17,6 +18,7 @@ export function SchematicViewer({ className = '' }: SchematicViewerProps) {
     showGrid,
     viewMode,
     simulation,
+    boardType,
   } = useSimulatorStore();
 
   const handleCanvasClick = useCallback(
@@ -137,6 +139,9 @@ export function SchematicViewer({ className = '' }: SchematicViewerProps) {
           {/* Breadboard view mode */}
           {viewMode === 'breadboard' && renderBreadboard()}
 
+          {/* Active board rendering */}
+          {renderActiveBoard(boardType)}
+
           {/* Components */}
           {components.map(renderComponent)}
         </svg>
@@ -147,6 +152,201 @@ export function SchematicViewer({ className = '' }: SchematicViewerProps) {
         </div>
       </div>
     </div>
+  );
+}
+
+function renderActiveBoard(boardId: string) {
+  const board = getBoardById(boardId);
+  if (!board) return null;
+
+  const isArduino = board.id.includes('arduino');
+  const isPico = board.id.includes('pico');
+  const isEsp32 = board.id.includes('esp32');
+  const isStm32 = board.id.includes('stm32');
+  const isNodemcu = board.id.includes('nodemcu');
+
+  if (isArduino) {
+    return renderArduinoBoard(board);
+  }
+  if (isPico) {
+    return renderPicoBoard(board);
+  }
+  if (isEsp32 || isNodemcu) {
+    return renderEsp32Board(board);
+  }
+  if (isStm32) {
+    return renderStm32Board(board);
+  }
+
+  // Generic board
+  return (
+    <g transform="translate(350, 100)">
+      <rect x={-35} y={-25} width={70} height={50} rx={4} fill="#1e293b" stroke="#334155" strokeWidth={1.5} />
+      <text x={0} y={2} textAnchor="middle" fill="#94a3b8" fontSize={7} fontWeight="bold">{board.name}</text>
+      <text x={0} y={12} textAnchor="middle" fill="#64748b" fontSize={6}>{board.mcu || ''}</text>
+      {/* Pins */}
+      {Array.from({ length: Math.min(board.pinCount.digital, 20) }, (_, i) => {
+        const side = i < 10 ? -1 : 1;
+        const row = i < 10 ? i : i - 10;
+        return (
+          <circle
+            key={i}
+            cx={side * 38}
+            cy={-20 + row * 4.5}
+            r={1.5}
+            fill="#475569"
+            stroke="#64748b"
+            strokeWidth={0.5}
+          />
+        );
+      })}
+    </g>
+  );
+}
+
+function renderArduinoBoard(board: { thumbnailColor: string; mcu?: string; name: string }) {
+  return (
+    <g transform="translate(350, 120)">
+      {/* Board body */}
+      <rect x={-40} y={-30} width={80} height={60} rx={3} fill="#0078D7" stroke="#005A9E" strokeWidth={1.5} opacity={0.9} />
+      <rect x={-36} y={-26} width={72} height={52} rx={2} fill="#005A9E" opacity={0.5} />
+
+      {/* MCU chip */}
+      <rect x={-10} y={-12} width={20} height={24} rx={1} fill="#1e293b" stroke="#475569" strokeWidth={0.5} />
+      <circle cx={-6} cy={-8} r={1} fill="#334155" />
+      <circle cx={6} cy={-8} r={1} fill="#334155" />
+      <circle cx={-6} cy={8} r={1} fill="#334155" />
+      <circle cx={6} cy={8} r={1} fill="#334155" />
+
+      {/* USB connector */}
+      <rect x={-32} y={-24} width={14} height={10} rx={1} fill="#475569" stroke="#64748b" strokeWidth={0.5} />
+      <rect x={-30} y={-22} width={10} height={6} rx={0.5} fill="#1e293b" />
+
+      {/* Power LED */}
+      <circle cx={20} cy={-20} r={2} fill="#22c55e" opacity={0.8} />
+      <circle cx={20} cy={-20} r={4} fill="#22c55e" opacity={0.2} />
+      <circle cx={26} cy={-20} r={2} fill="#eab308" opacity={0.6} />
+
+      {/* Pin headers - Digital (top) */}
+      {Array.from({ length: 14 }, (_, i) => (
+        <g key={`dp-${i}`}>
+          <circle cx={-35 + i * 5} cy={-30} r={1.5} fill="#374151" stroke="#6b7280" strokeWidth={0.5} />
+          <text x={-35 + i * 5} y={-34} textAnchor="middle" fill="#64748b" fontSize={4}>{i}</text>
+        </g>
+      ))}
+
+      {/* Pin headers - Analog (bottom) */}
+      {Array.from({ length: 6 }, (_, i) => (
+        <g key={`ap-${i}`}>
+          <circle cx={-20 + i * 5} cy={30} r={1.5} fill="#374151" stroke="#6b7280" strokeWidth={0.5} />
+          <text x={-20 + i * 5} y={38} textAnchor="middle" fill="#94a3b8" fontSize={4}>A{i}</text>
+        </g>
+      ))}
+
+      {/* Pin headers - Power (bottom) */}
+      {['RST', '3V3', '5V', 'GND', 'VIN'].map((label, i) => (
+        <g key={`pwr-${i}`}>
+          <circle cx={15 + i * 5} cy={30} r={1.5} fill="#374151" stroke="#6b7280" strokeWidth={0.5} />
+          <text x={15 + i * 5} y={38} textAnchor="middle" fill="#f87171" fontSize={3}>{label}</text>
+        </g>
+      ))}
+
+      {/* ICSP header */}
+      <rect x={-38} y={0} width={8} height={6} rx={0.5} fill="#1e293b" stroke="#475569" strokeWidth={0.3} />
+      {Array.from({ length: 3 }, (_, i) => (
+        <circle key={`icsp-${i}`} cx={-35 + i * 2.5} cy={1.5} r={0.8} fill="#475569" />
+      ))}
+      {Array.from({ length: 3 }, (_, i) => (
+        <circle key={`icsp2-${i}`} cx={-35 + i * 2.5} cy={4.5} r={0.8} fill="#475569" />
+      ))}
+
+      {/* Mounting holes */}
+      <circle cx={-35} cy={24} r={3} fill="none" stroke="#005A9E" strokeWidth={0.8} />
+      <circle cx={35} cy={24} r={3} fill="none" stroke="#005A9E" strokeWidth={0.8} />
+
+      {/* Board label */}
+      <text x={0} y={-18} textAnchor="middle" fill="#e2e8f0" fontSize={5} fontWeight="bold">ARDUINO UNO</text>
+      <text x={0} y={20} textAnchor="middle" fill="#94a3b8" fontSize={4}>{board.mcu || 'ATmega328P'}</text>
+    </g>
+  );
+}
+
+function renderPicoBoard(board: { thumbnailColor: string; mcu?: string; name: string }) {
+  return (
+    <g transform="translate(350, 120)">
+      <rect x={-45} y={-10} width={90} height={20} rx={2} fill="#1B5E20" stroke="#2E7D32" strokeWidth={1.5} />
+      {/* USB-C */}
+      <rect x={-44} y={-5} width={8} height={10} rx={1} fill="#475569" stroke="#64748b" strokeWidth={0.5} />
+      {/* BOOT button */}
+      <circle cx={-30} cy={5} r={2.5} fill="#374151" stroke="#6b7280" strokeWidth={0.5} />
+      <text x={-30} y={6.5} textAnchor="middle" fill="#9ca3af" fontSize={3}>B</text>
+      {/* LED */}
+      <circle cx={-22} cy={-5} r={1.5} fill="#22c55e" opacity={0.8} />
+      {/* MCU */}
+      <rect x={-5} y={-7} width={16} height={14} rx={0.5} fill="#1e293b" stroke="#475569" strokeWidth={0.3} />
+      {/* Pins along both sides */}
+      {Array.from({ length: 20 }, (_, i) => {
+        const side = i < 10 ? -1 : 1;
+        const row = i < 10 ? i : i - 10;
+        return <circle key={i} cx={side * 44} cy={-8 + row * 1.8} r={1.2} fill="#374151" stroke="#6b7280" strokeWidth={0.3} />;
+      })}
+      <text x={15} y={2} textAnchor="middle" fill="#a5d6a7" fontSize={5} fontWeight="bold">PICO</text>
+    </g>
+  );
+}
+
+function renderEsp32Board(board: { thumbnailColor: string; mcu?: string; name: string }) {
+  return (
+    <g transform="translate(350, 120)">
+      <rect x={-40} y={-20} width={80} height={40} rx={3} fill="#E65100" stroke="#BF360C" strokeWidth={1.5} opacity={0.9} />
+      {/* USB */}
+      <rect x={-35} y={-14} width={12} height={8} rx={1} fill="#475569" stroke="#64748b" strokeWidth={0.5} />
+      {/* Antenna */}
+      <rect x={15} y={-16} width={20} height={12} rx={1} fill="#1e293b" stroke="#475569" strokeWidth={0.3} />
+      <text x={25} y={-9} textAnchor="middle" fill="#64748b" fontSize={4}>ANT</text>
+      {/* MCU */}
+      <rect x={-8} y={-10} width={16} height={20} rx={0.5} fill="#1e293b" stroke="#475569" strokeWidth={0.3} />
+      {/* LEDs */}
+      <circle cx={18} cy={-8} r={1.5} fill="#22c55e" opacity={0.8} />
+      <circle cx={24} cy={-8} r={1.5} fill="#3b82f6" opacity={0.8} />
+      {/* Pins */}
+      {Array.from({ length: 18 }, (_, i) => {
+        const side = i < 9 ? -1 : 1;
+        const row = i < 9 ? i : i - 9;
+        return <circle key={i} cx={side * 39} cy={-15 + row * 3.5} r={1.3} fill="#374151" stroke="#6b7280" strokeWidth={0.3} />;
+      })}
+      <text x={-15} y={14} textAnchor="middle" fill="#ffcc80" fontSize={5} fontWeight="bold">ESP32</text>
+      <text x={-15} y={19} textAnchor="middle" fill="#ffab40" fontSize={3}>{board.mcu || 'WROOM-32'}</text>
+    </g>
+  );
+}
+
+function renderStm32Board(board: { thumbnailColor: string; mcu?: string; name: string }) {
+  return (
+    <g transform="translate(350, 100)">
+      <rect x={-35} y={-35} width={70} height={70} rx={3} fill="#4527A0" stroke="#311B92" strokeWidth={1.5} opacity={0.9} />
+      {/* USB */}
+      <rect x={-28} y={-32} width={12} height={8} rx={1} fill="#475569" stroke="#64748b" strokeWidth={0.5} />
+      {/* MCU */}
+      <rect x={-12} y={-14} width={24} height={28} rx={0.5} fill="#1e293b" stroke="#475569" strokeWidth={0.3} />
+      <text x={0} y={2} textAnchor="middle" fill="#64748b" fontSize={4}>{board.mcu || 'STM32'}</text>
+      {/* Arduino pin headers */}
+      {Array.from({ length: 14 }, (_, i) => (
+        <circle key={`a-${i}`} cx={-30 + i * 4} cy={-35} r={1.3} fill="#374151" stroke="#6b7280" strokeWidth={0.3} />
+      ))}
+      {Array.from({ length: 14 }, (_, i) => (
+        <circle key={`b-${i}`} cx={-30 + i * 4} cy={35} r={1.3} fill="#374151" stroke="#6b7280" strokeWidth={0.3} />
+      ))}
+      {/* Morpho headers */}
+      {Array.from({ length: 20 }, (_, i) => (
+        <circle key={`m-${i}`} cx={35} cy={-25 + i * 2.5} r={1} fill="#374151" stroke="#6b7280" strokeWidth={0.2} />
+      ))}
+      {/* LEDs */}
+      <circle cx={20} cy={-25} r={1.5} fill="#22c55e" opacity={0.8} />
+      <circle cx={25} cy={-25} r={1.5} fill="#3b82f6" opacity={0.6} />
+      {/* Label */}
+      <text x={0} y={-20} textAnchor="middle" fill="#d1c4e9" fontSize={4} fontWeight="bold">NUCLEO</text>
+    </g>
   );
 }
 

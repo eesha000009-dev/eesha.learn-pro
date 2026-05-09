@@ -9,6 +9,7 @@ import { ComponentInspector } from '@/components/component-inspector';
 import { SimulationControls } from '@/components/simulation-controls';
 import { SerialMonitor } from '@/components/serial-monitor';
 import { TemplateGallery } from '@/components/template-gallery';
+import { BoardGallery } from '@/components/board-gallery';
 import { circuitTemplates } from '@/lib/templates';
 import {
   ResizablePanelGroup,
@@ -120,6 +121,7 @@ export default function HomePage() {
           {/* Center: Templates + Actions */}
           <div className="flex items-center gap-2">
             <TemplateGallery />
+            <BoardGallery />
             <div className="w-px h-5 bg-zinc-800" />
             <Button
               variant="ghost"

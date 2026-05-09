@@ -3,6 +3,7 @@
 import React, { useCallback, useState } from 'react';
 import { useSimulatorStore } from '@/store/simulator-store';
 import { getSimulation } from '@/lib/simulation-bridge';
+import { getBoardById } from '@/lib/board-registry';
 import {
   Play,
   Square,
@@ -10,8 +11,7 @@ import {
   ChevronUp,
   ChevronDown,
   Cpu,
-  Trash2,
-  Clock,
+  CircuitBoard,
 } from 'lucide-react';
 
 export function SimulationControls() {
@@ -29,10 +29,11 @@ export function SimulationControls() {
     setBoardType,
     viewMode,
     setViewMode,
+    installedBoardIds,
   } = useSimulatorStore();
 
   const [elapsed, setElapsed] = useState(0);
-  const [activeBoard, setActiveBoard] = useState(boardType);
+  const activeBoard = getBoardById(boardType);
 
   const handleStart = useCallback(async () => {
     setRunning(true);
@@ -74,32 +75,24 @@ export function SimulationControls() {
     [simulation.speed, setSpeed]
   );
 
-  const handleBoardChange = useCallback(
-    (board: typeof boardType) => {
-      setActiveBoard(board);
-      setBoardType(board);
-      handleReset();
-    },
-    [setBoardType, handleReset]
-  );
-
   return (
     <div className="flex items-center gap-1 px-3 py-1.5 bg-zinc-800 border-b border-zinc-700">
-      {/* Board selector */}
-      <div className="flex items-center gap-1 mr-2">
-        {(['arduino_uno', 'esp32', 'raspberry_pi_pico'] as const).map((board) => (
-          <button
-            key={board}
-            className={`px-2 py-1 text-[10px] font-semibold rounded transition-colors ${
-              activeBoard === board
-                ? 'bg-emerald-600 text-white'
-                : 'bg-zinc-700 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-600'
-            }`}
-            onClick={() => handleBoardChange(board)}
-          >
-            {board === 'arduino_uno' ? 'Uno' : board === 'esp32' ? 'ESP32' : 'Pico'}
-          </button>
-        ))}
+      {/* Active Board indicator */}
+      <div className="flex items-center gap-1.5 mr-1">
+        <div
+          className="w-5 h-5 rounded flex items-center justify-center"
+          style={{ backgroundColor: (activeBoard?.thumbnailColor || '#374151') + '30' }}
+        >
+          <CircuitBoard className="h-3 w-3" style={{ color: activeBoard?.thumbnailColor || '#9ca3af' }} />
+        </div>
+        <div className="flex flex-col">
+          <span className="text-[10px] font-semibold text-zinc-200 leading-none">
+            {activeBoard?.name || boardType}
+          </span>
+          <span className="text-[8px] text-zinc-600 leading-none mt-0.5">
+            {activeBoard?.mcu || ''} {activeBoard?.architecture ? `• ${activeBoard.architecture.toUpperCase()}` : ''}
+          </span>
+        </div>
       </div>
 
       <div className="w-px h-5 bg-zinc-700 mx-1" />
@@ -125,7 +118,6 @@ export function SimulationControls() {
 
       {/* Playback controls */}
       <div className="flex items-center gap-1">
-        {/* Stop */}
         <button
           className={`p-1.5 rounded transition-colors ${
             simulation.isRunning
@@ -139,7 +131,6 @@ export function SimulationControls() {
           <Square className="h-3.5 w-3.5" fill={simulation.isRunning ? 'currentColor' : 'none'} />
         </button>
 
-        {/* Play/Run */}
         <button
           className={`p-1.5 rounded transition-colors ${
             simulation.isRunning
@@ -156,7 +147,6 @@ export function SimulationControls() {
           )}
         </button>
 
-        {/* Reset */}
         <button
           className="p-1.5 rounded text-zinc-400 hover:text-zinc-200 hover:bg-zinc-700 transition-colors"
           onClick={handleReset}

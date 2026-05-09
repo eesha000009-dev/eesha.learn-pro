@@ -6,6 +6,7 @@ import type {
   PinState,
   LogEntry,
   EditorTab,
+  SubcircuitGroup,
 } from '@/types';
 
 interface SimulatorStore {
@@ -47,9 +48,23 @@ interface SimulatorStore {
   closeTab: (id: string) => void;
   setActiveTab: (id: string) => void;
 
-  // Board
-  boardType: 'arduino_uno' | 'esp32' | 'raspberry_pi_pico';
-  setBoardType: (board: 'arduino_uno' | 'esp32' | 'raspberry_pi_pico') => void;
+  // Board (now supports any registry board ID)
+  boardType: string;
+  setBoardType: (board: string) => void;
+
+  // Registry Boards
+  installedBoardIds: Set<string>;
+  installBoard: (id: string) => void;
+  uninstallBoard: (id: string) => void;
+
+  // Subcircuit Groups
+  subcircuitGroups: SubcircuitGroup[];
+  addGroup: (group: SubcircuitGroup) => void;
+  removeGroup: (id: string) => void;
+  renameGroup: (id: string, name: string) => void;
+  toggleGroupCollapse: (id: string) => void;
+  addComponentToGroup: (groupId: string, componentId: string) => void;
+  removeComponentFromGroup: (groupId: string, componentId: string) => void;
 
   // Logs
   logs: LogEntry[];
@@ -156,8 +171,56 @@ export const useSimulatorStore = create<SimulatorStore>((set) => ({
     }),
   setActiveTab: (id) => set({ activeTabId: id }),
 
-  boardType: 'arduino_uno',
+  boardType: 'arduino-uno',
   setBoardType: (board) => set({ boardType: board }),
+
+  installedBoardIds: new Set(['arduino-uno', 'arduino-nano']),
+  installBoard: (id) =>
+    set((s) => {
+      const next = new Set(s.installedBoardIds);
+      next.add(id);
+      return { installedBoardIds: next };
+    }),
+  uninstallBoard: (id) =>
+    set((s) => {
+      const next = new Set(s.installedBoardIds);
+      next.delete(id);
+      return { installedBoardIds: next };
+    }),
+
+  subcircuitGroups: [],
+  addGroup: (group) =>
+    set((s) => ({ subcircuitGroups: [...s.subcircuitGroups, group] })),
+  removeGroup: (id) =>
+    set((s) => ({ subcircuitGroups: s.subcircuitGroups.filter((g) => g.id !== id) })),
+  renameGroup: (id, name) =>
+    set((s) => ({
+      subcircuitGroups: s.subcircuitGroups.map((g) =>
+        g.id === id ? { ...g, name } : g
+      ),
+    })),
+  toggleGroupCollapse: (id) =>
+    set((s) => ({
+      subcircuitGroups: s.subcircuitGroups.map((g) =>
+        g.id === id ? { ...g, isCollapsed: !g.isCollapsed } : g
+      ),
+    })),
+  addComponentToGroup: (groupId, componentId) =>
+    set((s) => ({
+      subcircuitGroups: s.subcircuitGroups.map((g) =>
+        g.id === groupId
+          ? { ...g, componentIds: [...g.componentIds, componentId] }
+          : g
+      ),
+    })),
+  removeComponentFromGroup: (groupId, componentId) =>
+    set((s) => ({
+      subcircuitGroups: s.subcircuitGroups.map((g) =>
+        g.id === groupId
+          ? { ...g, componentIds: g.componentIds.filter((cId) => cId !== componentId) }
+          : g
+      ),
+    })),
 
   logs: [],
   addLog: (entry) =>
