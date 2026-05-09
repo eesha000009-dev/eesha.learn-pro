@@ -267,36 +267,30 @@ export default function HomePage() {
 
         {/* ===== FOOTER ===== */}
         <footer className="flex items-center justify-between px-4 py-1 bg-zinc-900 border-t border-zinc-800 select-none mt-auto">
-          <div className="flex items-center gap-2 text-[10px] text-zinc-600">
+          <div className="flex items-center gap-2 text-[10px]">
             <span className="flex items-center gap-1">
-              <GraduationCap className="h-3 w-3" />
-              <span className="font-medium text-zinc-500">Eesha Learn</span> v2.0
+              <GraduationCap className="h-3 w-3 text-zinc-500" />
+              <span className="font-semibold text-zinc-400">Eesha Learn</span>
+              <span className="text-zinc-600 font-mono">v2.0</span>
             </span>
-            <span className="text-zinc-700">|</span>
-            <div className="flex items-center gap-1.5">
-              <span className="px-1.5 py-0 rounded bg-emerald-500/10 text-emerald-500 font-medium">avr8js</span>
-              <span className="px-1.5 py-0 rounded bg-amber-500/10 text-amber-500 font-medium">rp2040js</span>
-              <span className="px-1.5 py-0 rounded bg-rose-500/10 text-rose-500 font-medium">rvemu</span>
-              <span className="px-1.5 py-0 rounded bg-violet-500/10 text-violet-500 font-medium">M-ulator</span>
-            </div>
-            <span className="text-zinc-700">|</span>
-            <span className="flex items-center gap-1">
-              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-              All MIT Licensed
+            <span className="text-zinc-800">|</span>
+            <span className="text-zinc-500 font-mono">
+              avr8js <span className="text-zinc-700">·</span> rp2040js <span className="text-zinc-700">·</span> rvemu <span className="text-zinc-700">·</span> M-ulator
             </span>
           </div>
           <div className="flex items-center gap-3 text-[10px]">
-            <span className="text-zinc-600">
-              {simulation.isRunning ? (
-                <span className="text-emerald-400 flex items-center gap-1">
-                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                  Simulating
-                </span>
-              ) : (
-                <span className="text-zinc-600">Idle</span>
-              )}
-            </span>
-            <span className="text-zinc-700">|</span>
+            {simulation.isRunning ? (
+              <span className="text-emerald-400 flex items-center gap-1">
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                Running
+              </span>
+            ) : (
+              <span className="text-zinc-600 flex items-center gap-1">
+                <span className="h-1.5 w-1.5 rounded-full bg-zinc-600" />
+                Idle
+              </span>
+            )}
+            <span className="text-zinc-800">|</span>
             <span className="text-zinc-600">tscircuit + arduino-cli</span>
           </div>
         </footer>

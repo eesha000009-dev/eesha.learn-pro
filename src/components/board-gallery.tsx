@@ -373,11 +373,6 @@ function BoardCard({
             <span className="text-zinc-500">
               <span className="text-zinc-400 font-medium">Size:</span> {board.dimensions.width} x {board.dimensions.height}
             </span>
-            <span className="text-zinc-700">|</span>
-            <span className="text-zinc-500">
-              <span className="text-zinc-400 font-medium">License:</span>{' '}
-              <span className="px-1 py-0 rounded bg-emerald-500/10 text-emerald-400 font-medium">{board.license}</span>
-            </span>
           </div>
 
           {/* Emulator info */}

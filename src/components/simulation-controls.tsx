@@ -156,9 +156,6 @@ export function SimulationControls() {
       <div className="flex items-center gap-1.5 mr-1 px-2 py-0.5 rounded bg-zinc-900/50 border border-zinc-700/50">
         <Cpu className="h-3 w-3 text-amber-400" />
         <span className="text-[9px] font-mono text-amber-400 font-medium">{emulatorInfo.name}</span>
-        <span className="text-[8px] px-1 py-0 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-medium">
-          {emulatorInfo.license}
-        </span>
       </div>
 
       <div className="w-px h-5 bg-zinc-700 mx-1" />

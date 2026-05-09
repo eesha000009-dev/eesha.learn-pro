@@ -139,3 +139,31 @@
   0%, 100% { opacity: 0.3; }
   50% { opacity: 0.8; }
 }
+
+/* Collapsible open/close animations */
+.collapsible-content[data-state="open"] {
+  animation: collapsible-down 200ms ease-out;
+}
+.collapsible-content[data-state="closed"] {
+  animation: collapsible-up 200ms ease-out;
+}
+@keyframes collapsible-down {
+  from {
+    height: 0;
+    opacity: 0;
+  }
+  to {
+    height: var(--radix-collapsible-content-height);
+    opacity: 1;
+  }
+}
+@keyframes collapsible-up {
+  from {
+    height: var(--radix-collapsible-content-height);
+    opacity: 1;
+  }
+  to {
+    height: 0;
+    opacity: 0;
+  }
+}
