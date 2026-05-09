@@ -347,12 +347,13 @@ function BoardCard({
       {isExpanded && (
         <div className="px-3 pb-3 border-t border-zinc-800 pt-3 space-y-3">
           {/* Stats row */}
-          <div className="grid grid-cols-4 gap-2">
+          <div className="grid grid-cols-5 gap-2">
             {[
               { label: 'Digital', value: board.pinCount.digital },
               { label: 'Analog', value: board.pinCount.analog },
               { label: 'PWM', value: board.pinCount.pwm },
               { label: 'I2C', value: board.pinCount.i2c },
+              { label: 'SPI', value: board.pinCount.spi },
             ].map((s) => (
               <div key={s.label} className="text-center bg-zinc-800 rounded p-1.5">
                 <div className="text-sm font-bold text-zinc-300">{s.value}</div>
@@ -374,8 +375,18 @@ function BoardCard({
             </span>
             <span className="text-zinc-700">|</span>
             <span className="text-zinc-500">
-              <span className="text-zinc-400 font-medium">Form:</span> {board.formFactor}
+              <span className="text-zinc-400 font-medium">License:</span>{' '}
+              <span className="px-1 py-0 rounded bg-emerald-500/10 text-emerald-400 font-medium">{board.license}</span>
             </span>
+          </div>
+
+          {/* Emulator info */}
+          <div className="flex items-center gap-2 text-[10px]">
+            <span className="text-zinc-400 font-medium">Emulator:</span>
+            <span className="px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-400 font-medium">
+              {(board as any).emulator || 'avr8js'}
+            </span>
+            <span className="text-zinc-600">Simulates {board.pinCount.digital} digital + {board.pinCount.analog} analog pins</span>
           </div>
 
           {/* tsci command */}

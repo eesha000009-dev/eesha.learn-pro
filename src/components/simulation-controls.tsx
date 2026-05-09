@@ -1,9 +1,16 @@
 'use client';
 
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useState, useEffect } from 'react';
 import { useSimulatorStore } from '@/store/simulator-store';
 import { getSimulation } from '@/lib/simulation-bridge';
+import { getRP2040Simulation } from '@/lib/rp2040-bridge';
+import { getRISCVSimulation } from '@/lib/riscv-bridge';
 import { getBoardById } from '@/lib/board-registry';
+import {
+  type EmulatorType,
+  getEmulatorForBoard,
+  getEmulatorInfo,
+} from '@/lib/emulator-registry';
 import {
   Play,
   Square,
@@ -12,6 +19,8 @@ import {
   ChevronDown,
   Cpu,
   CircuitBoard,
+  Shield,
+  Zap,
 } from 'lucide-react';
 
 export function SimulationControls() {
@@ -33,27 +42,60 @@ export function SimulationControls() {
   } = useSimulatorStore();
 
   const [elapsed, setElapsed] = useState(0);
+  const emulatorType = getEmulatorForBoard(boardType);
   const activeBoard = getBoardById(boardType);
+  const emulatorInfo = getEmulatorInfo(emulatorType);
+
+  useEffect(() => {
+    if (!simulation.isRunning) return;
+    const interval = setInterval(() => {
+      setElapsed((prev) => prev + 1);
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [simulation.isRunning]);
 
   const handleStart = useCallback(async () => {
     setRunning(true);
-    const sim = getSimulation();
-    sim.onPinChange((compId, pins) => {
-      updatePinState(compId, pins);
-    });
-    sim.onSerialOutput((line) => {
-      addSerialOutput(line);
-    });
-    sim.onError((err) => {
-      addError(err);
-    });
-    sim.start();
+    const code = useSimulatorStore.getState().editorTabs.find((t) => t.language === 'c' || t.language === 'python')?.content || '';
+    
+    // Select simulation backend based on emulator type
+    const currentBoardType = useSimulatorStore.getState().boardType;
+    const emType = getEmulatorForBoard(currentBoardType);
+    
+    if (emType === 'rp2040js') {
+      const sim = getRP2040Simulation();
+      await sim.loadCode(code);
+      sim.onPinChange((compId, pins) => updatePinState(compId, pins));
+      sim.onSerialOutput((line) => addSerialOutput(line));
+      sim.onError((err) => addError(err));
+      sim.start();
+    } else if (emType === 'riscv') {
+      const sim = getRISCVSimulation();
+      await sim.loadCode(code);
+      sim.onPinChange((compId, pins) => updatePinState(compId, pins));
+      sim.onSerialOutput((line) => addSerialOutput(line));
+      sim.onError((err) => addError(err));
+      sim.start();
+    } else {
+      const sim = getSimulation();
+      sim.onPinChange((compId, pins) => updatePinState(compId, pins));
+      sim.onSerialOutput((line) => addSerialOutput(line));
+      sim.onError((err) => addError(err));
+      sim.start();
+    }
   }, [setRunning, updatePinState, addSerialOutput, addError]);
 
   const handleStop = useCallback(() => {
     setRunning(false);
-    const sim = getSimulation();
-    sim.stop();
+    const currentBoardType = useSimulatorStore.getState().boardType;
+    const emType = getEmulatorForBoard(currentBoardType);
+    if (emType === 'rp2040js') {
+      getRP2040Simulation().stop();
+    } else if (emType === 'riscv') {
+      getRISCVSimulation().stop();
+    } else {
+      getSimulation().stop();
+    }
   }, [setRunning]);
 
   const handleReset = useCallback(() => {
@@ -61,8 +103,15 @@ export function SimulationControls() {
     clearSerialOutput();
     clearErrors();
     setElapsed(0);
-    const sim = getSimulation();
-    sim.reset();
+    const currentBoardType = useSimulatorStore.getState().boardType;
+    const emType = getEmulatorForBoard(currentBoardType);
+    if (emType === 'rp2040js') {
+      getRP2040Simulation().reset();
+    } else if (emType === 'riscv') {
+      getRISCVSimulation().reset();
+    } else {
+      getSimulation().reset();
+    }
   }, [resetSimulation, clearSerialOutput, clearErrors]);
 
   const handleSpeedChange = useCallback(
@@ -74,6 +123,12 @@ export function SimulationControls() {
     },
     [simulation.speed, setSpeed]
   );
+
+  const formatTime = (seconds: number) => {
+    const m = Math.floor(seconds / 60).toString().padStart(2, '0');
+    const s = (seconds % 60).toString().padStart(2, '0');
+    return `${m}:${s}`;
+  };
 
   return (
     <div className="flex items-center gap-1 px-3 py-1.5 bg-zinc-800 border-b border-zinc-700">
@@ -90,9 +145,20 @@ export function SimulationControls() {
             {activeBoard?.name || boardType}
           </span>
           <span className="text-[8px] text-zinc-600 leading-none mt-0.5">
-            {activeBoard?.mcu || ''} {activeBoard?.architecture ? `• ${activeBoard.architecture.toUpperCase()}` : ''}
+            {activeBoard?.mcu || ''} {activeBoard?.architecture ? `| ${activeBoard.architecture.toUpperCase()}` : ''}
           </span>
         </div>
+      </div>
+
+      <div className="w-px h-5 bg-zinc-700 mx-1" />
+
+      {/* Emulator indicator */}
+      <div className="flex items-center gap-1.5 mr-1 px-2 py-0.5 rounded bg-zinc-900/50 border border-zinc-700/50">
+        <Cpu className="h-3 w-3 text-amber-400" />
+        <span className="text-[9px] font-mono text-amber-400 font-medium">{emulatorInfo.name}</span>
+        <span className="text-[8px] px-1 py-0 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-medium">
+          {emulatorInfo.license}
+        </span>
       </div>
 
       <div className="w-px h-5 bg-zinc-700 mx-1" />
@@ -134,7 +200,7 @@ export function SimulationControls() {
         <button
           className={`p-1.5 rounded transition-colors ${
             simulation.isRunning
-              ? 'text-emerald-400 bg-emerald-400/10'
+              ? 'text-amber-400 bg-amber-400/10'
               : 'text-zinc-300 hover:text-white hover:bg-emerald-400/10'
           }`}
           onClick={simulation.isRunning ? handleStop : handleStart}
@@ -179,22 +245,32 @@ export function SimulationControls() {
         </button>
       </div>
 
+      <div className="w-px h-5 bg-zinc-700 mx-1" />
+
+      {/* Elapsed time */}
+      <span className="text-[10px] font-mono text-zinc-500 min-w-[3rem] text-center">
+        {simulation.isRunning ? formatTime(elapsed) : '00:00'}
+      </span>
+
       <div className="flex-1" />
 
       {/* Status */}
       <div className="flex items-center gap-2">
-        <div className="flex items-center gap-1">
-          <div
-            className={`h-2 w-2 rounded-full ${
-              simulation.isRunning
-                ? 'bg-emerald-400 animate-pulse'
-                : 'bg-zinc-600'
-            }`}
-          />
-          <span className="text-[10px] text-zinc-500">
-            {simulation.isRunning ? 'Running' : 'Stopped'}
-          </span>
-        </div>
+        {simulation.isRunning && (
+          <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20">
+            <div className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
+            <span className="text-[9px] text-emerald-400 font-medium">Running</span>
+          </div>
+        )}
+        {!simulation.isRunning && simulation.serialOutput.length > 0 && (
+          <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-zinc-800">
+            <div className="h-1.5 w-1.5 rounded-full bg-zinc-500" />
+            <span className="text-[9px] text-zinc-500 font-medium">Stopped</span>
+          </div>
+        )}
+        {!simulation.isRunning && simulation.serialOutput.length === 0 && (
+          <span className="text-[10px] text-zinc-600">Ready</span>
+        )}
       </div>
     </div>
   );
