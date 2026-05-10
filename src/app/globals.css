@@ -4,6 +4,9 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
+  /* Custom breakpoint: xs (small phones) — below sm (640px) */
+  --breakpoint-xs: 475px;
+
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
@@ -81,13 +84,17 @@
 @layer base {
   * {
     @apply border-border outline-ring/50;
+    box-sizing: border-box;
   }
   body {
     @apply bg-background text-foreground;
   }
 }
 
-/* Custom scrollbar for dark theme */
+/* ═══════════════════════════════════════════════════════════════════════
+   SCROLLBAR STYLES
+   ═══════════════════════════════════════════════════════════════════════ */
+
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
@@ -98,87 +105,12 @@
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #27272a;
+  background: #d1d5db;
   border-radius: 3px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #3f3f46;
-}
-
-/* Resizable panel handles */
-[data-panel-group-direction="horizontal"] > [data-resize-handle] {
-  width: 2px !important;
-  background: #27272a !important;
-  transition: background 0.15s;
-}
-
-[data-panel-group-direction="horizontal"] > [data-resize-handle]:hover {
-  background: #10b981 !important;
-  width: 3px !important;
-}
-
-[data-panel-group-direction="vertical"] > [data-resize-handle] {
-  height: 2px !important;
-  background: #27272a !important;
-  transition: background 0.15s;
-}
-
-[data-panel-group-direction="vertical"] > [data-resize-handle]:hover {
-  background: #10b981 !important;
-  height: 3px !important;
-}
-
-/* Code editor font */
-.font-mono {
-  font-variant-ligatures: none;
-}
-
-/* Smooth animations */
-@keyframes glow-pulse {
-  0%, 100% { opacity: 0.3; }
-  50% { opacity: 0.8; }
-}
-
-/* Slide-in animation for mobile palette */
-@keyframes slide-in-left {
-  from {
-    transform: translateX(-100%);
-  }
-  to {
-    transform: translateX(0);
-  }
-}
-
-.animate-slide-in-left {
-  animation: slide-in-left 200ms ease-out;
-}
-
-/* Prevent overscroll bounce on iOS */
-html, body {
-  overscroll-behavior: none;
-  -webkit-overflow-scrolling: touch;
-}
-
-/* Ensure full viewport on mobile */
-body {
-  position: fixed;
-  width: 100%;
-  height: 100%;
-  overflow: hidden;
-}
-
-/* Touch-friendly scrolling for component lists */
-.overscroll-contain {
-  overscroll-behavior: contain;
-  -webkit-overflow-scrolling: touch;
-}
-
-/* Prevent text selection on UI chrome */
-header, footer, .select-none {
-  -webkit-user-select: none;
-  user-select: none;
-  -webkit-touch-callout: none;
+  background: #9ca3af;
 }
 
 /* Responsive scrollbar for light theme panels */
@@ -190,6 +122,61 @@ header, footer, .select-none {
   background: #9ca3af;
 }
 
+/* ═══════════════════════════════════════════════════════════════════════
+   VIEWPORT & BODY SETUP
+   ═══════════════════════════════════════════════════════════════════════ */
+
+html {
+  overscroll-behavior: none;
+  -webkit-overflow-scrolling: touch;
+  -webkit-text-size-adjust: 100%;
+  -ms-text-size-adjust: 100%;
+}
+
+body {
+  position: fixed;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Prevent text selection on UI chrome */
+header, footer, .select-none {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+
+/* Touch-friendly scrolling for component lists */
+.overscroll-contain {
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Code editor font */
+.font-mono {
+  font-variant-ligatures: none;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   ANIMATIONS
+   ═══════════════════════════════════════════════════════════════════════ */
+
+@keyframes glow-pulse {
+  0%, 100% { opacity: 0.3; }
+  50% { opacity: 0.8; }
+}
+
+@keyframes slide-in-left {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(0); }
+}
+
+.animate-slide-in-left {
+  animation: slide-in-left 200ms ease-out;
+}
+
 /* Collapsible open/close animations */
 .collapsible-content[data-state="open"] {
   animation: collapsible-down 200ms ease-out;
@@ -198,22 +185,211 @@ header, footer, .select-none {
   animation: collapsible-up 200ms ease-out;
 }
 @keyframes collapsible-down {
-  from {
-    height: 0;
-    opacity: 0;
-  }
-  to {
-    height: var(--radix-collapsible-content-height);
-    opacity: 1;
-  }
+  from { height: 0; opacity: 0; }
+  to { height: var(--radix-collapsible-content-height); opacity: 1; }
 }
 @keyframes collapsible-up {
-  from {
-    height: var(--radix-collapsible-content-height);
-    opacity: 1;
+  from { height: var(--radix-collapsible-content-height); opacity: 1; }
+  to { height: 0; opacity: 0; }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   RESPONSIVE MEDIA QUERIES — ALL DEVICES
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* ─── Very small phones (< 360px) ────────────────────────────────────── */
+@media (max-width: 359px) {
+  /* Hide non-essential header items on very small screens */
+  .hide-very-small {
+    display: none !important;
   }
-  to {
-    height: 0;
-    opacity: 0;
+
+  /* Smaller touch targets still accessible */
+  button[aria-label] {
+    min-width: 32px;
+    min-height: 32px;
+  }
+
+  /* Make footer more compact */
+  footer {
+    font-size: 9px !important;
+    padding-top: 2px !important;
+    padding-bottom: 2px !important;
+  }
+}
+
+/* ─── Small phones (360px – 479px) ──────────────────────────────────── */
+@media (min-width: 360px) and (max-width: 479px) {
+  /* Ensure toolbar buttons don't crowd */
+  .toolbar-btn {
+    min-width: 28px;
+    min-height: 28px;
+  }
+}
+
+/* ─── Large phones (480px – 767px) ──────────────────────────────────── */
+@media (min-width: 480px) and (max-width: 767px) {
+  /* Slightly more room for toolbar labels */
+  .toolbar-label {
+    display: inline !important;
+  }
+}
+
+/* ─── Tablets portrait (768px – 1023px) ─────────────────────────────── */
+@media (min-width: 768px) and (max-width: 1023px) {
+  /* Show more toolbar items on tablets */
+  .show-tablet {
+    display: flex !important;
+  }
+
+  /* Larger component palette on tablets */
+  .component-palette {
+    width: 256px !important;
+  }
+}
+
+/* ─── Tablets landscape / small desktops (1024px – 1279px) ──────────── */
+@media (min-width: 1024px) and (max-width: 1279px) {
+  /* Full toolbar available */
+}
+
+/* ─── Desktop (1280px – 1439px) ─────────────────────────────────────── */
+@media (min-width: 1280px) and (max-width: 1439px) {
+  /* Standard desktop layout */
+}
+
+/* ─── Large desktop / external monitors (1440px+) ───────────────────── */
+@media (min-width: 1440px) {
+  /* Max content width for readability on ultra-wide screens */
+  .max-wide {
+    max-width: 1920px;
+    margin: 0 auto;
+  }
+}
+
+/* ─── Ultra-wide screens (1920px+) ──────────────────────────────────── */
+@media (min-width: 1920px) {
+  /* Limit maximum zoom for usability */
+  .max-wide {
+    max-width: 2400px;
+    margin: 0 auto;
+  }
+}
+
+/* ─── Short screens (landscape phones, height < 500px) ──────────────── */
+@media (max-height: 499px) {
+  /* Compact mode for landscape phones */
+  .compact-landscape {
+    padding-top: 2px !important;
+    padding-bottom: 2px !important;
+    min-height: unset !important;
+    height: auto !important;
+  }
+
+  /* Hide serial monitor in landscape by default */
+  .hide-short-screen {
+    display: none !important;
+  }
+}
+
+/* ─── Touch device optimizations ─────────────────────────────────────── */
+@media (pointer: coarse) {
+  /* Larger touch targets on touch devices */
+  button, [role="button"] {
+    min-height: 36px;
+  }
+
+  /* Remove hover-only interactions on touch */
+  .hover\:bg-gray-50:active {
+    background-color: #f9fafb;
+  }
+
+  /* Pin dots slightly larger for touch */
+  svg circle[r="5"] {
+    r: 7;
+  }
+}
+
+/* ─── High DPI screens ──────────────────────────────────────────────── */
+@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+  /* Crisper borders on Retina */
+  svg {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    shape-rendering: crispEdges;
+  }
+}
+
+/* ─── Low-powered devices / reduced motion ──────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ─── Safe area insets (notched phones) ─────────────────────────────── */
+@supports (padding: env(safe-area-inset-bottom)) {
+  footer {
+    padding-bottom: calc(4px + env(safe-area-inset-bottom));
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   RESIZABLE PANEL HANDLES
+   ═══════════════════════════════════════════════════════════════════════ */
+
+[data-panel-group-direction="horizontal"] > [data-resize-handle] {
+  width: 2px !important;
+  background: #d1d5db !important;
+  transition: background 0.15s;
+}
+
+[data-panel-group-direction="horizontal"] > [data-resize-handle]:hover {
+  background: #10b981 !important;
+  width: 3px !important;
+}
+
+[data-panel-group-direction="vertical"] > [data-resize-handle] {
+  height: 2px !important;
+  background: #d1d5db !important;
+  transition: background 0.15s;
+}
+
+[data-panel-group-direction="vertical"] > [data-resize-handle]:hover {
+  background: #10b981 !important;
+  height: 3px !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   SVG CANVAS TOUCH OPTIMIZATION
+   ═══════════════════════════════════════════════════════════════════════ */
+
+svg {
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  touch-action: none;
+}
+
+/* Ensure pin circles have large enough hit targets for touch */
+svg circle[class*="cursor-pointer"],
+svg circle[onClick] {
+  min-width: 20px;
+  min-height: 20px;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   PRINT STYLES
+   ═══════════════════════════════════════════════════════════════════════ */
+
+@media print {
+  header, footer, .no-print {
+    display: none !important;
+  }
+  body {
+    position: static;
+    overflow: visible;
   }
 }

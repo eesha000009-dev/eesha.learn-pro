@@ -253,13 +253,13 @@ export default function HomePage() {
       {/* ═══════════════════════════════════════════════════════════════════
           ROW 1 — MAIN HEADER
           ═══════════════════════════════════════════════════════════════════ */}
-      <header className="flex items-center justify-between px-2 sm:px-3 h-11 sm:h-12 bg-[#F8F9FA] border-b border-[#E9ECEF] select-none shrink-0 min-w-0">
+      <header className="flex items-center justify-between px-1.5 sm:px-3 h-10 sm:h-11 md:h-12 bg-[#F8F9FA] border-b border-[#E9ECEF] select-none shrink-0 min-w-0">
         {/* ── Left group: Logo + Menus + Tabs ──────────────────────────── */}
-        <div className="flex items-center gap-1.5 sm:gap-3 min-w-0 flex-shrink min-w-0">
+        <div className="flex items-center gap-1 sm:gap-2 md:gap-3 min-w-0 flex-shrink min-w-0">
           {/* Logo */}
           <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
-            <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-lg bg-[#4361EE]/10 flex items-center justify-center">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#4361EE" strokeWidth="2.5" strokeLinecap="round">
+            <div className="w-5 h-5 sm:w-6 sm:h-6 md:w-7 md:h-7 rounded-lg bg-[#4361EE]/10 flex items-center justify-center">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#4361EE" strokeWidth="2.5" strokeLinecap="round">
                 <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
               </svg>
             </div>
@@ -314,7 +314,7 @@ export default function HomePage() {
                 }`}
               >
                 {tab.icon}
-                <span className="hidden xs:inline sm:inline">{tab.label}</span>
+                <span className="hidden xs:inline">{tab.label}</span>
                 {tab.id === 'simulate' && simulation.isRunning && (
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
                     <polyline points="20 6 9 17 4 12" />
@@ -426,7 +426,7 @@ export default function HomePage() {
       {/* ═══════════════════════════════════════════════════════════════════
           ROW 2 — SECONDARY TOOLBAR
           ═══════════════════════════════════════════════════════════════════ */}
-      <div className="flex items-center justify-between px-2 sm:px-3 h-9 sm:h-10 bg-[#F8F9FA] border-b border-[#E9ECEF] select-none shrink-0 overflow-x-auto">
+      <div className="flex items-center justify-between px-1.5 sm:px-3 h-8 sm:h-9 md:h-10 bg-[#F8F9FA] border-b border-[#E9ECEF] select-none shrink-0 overflow-x-auto">
         {/* ── Left: Controls ───────────────────────────────────────────── */}
         <div className="flex items-center gap-1 sm:gap-2 shrink-0">
           {/* Stop button */}
@@ -441,11 +441,11 @@ export default function HomePage() {
             </svg>
           </button>
 
-          {/* Pause button */}
+          {/* Pause button - hidden on very small screens */}
           <button
             title={simulation.isPaused ? 'Resume' : 'Pause'}
             onClick={() => simulation.isRunning && setPaused(!simulation.isPaused)}
-            className="w-7 h-7 flex items-center justify-center rounded-full bg-gray-100 text-gray-500 hover:bg-gray-200 hover:text-gray-700 transition-colors"
+            className="hidden xs:flex w-7 h-7 items-center justify-center rounded-full bg-gray-100 text-gray-500 hover:bg-gray-200 hover:text-gray-700 transition-colors"
           >
             {simulation.isPaused ? (
               <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
@@ -459,11 +459,11 @@ export default function HomePage() {
             )}
           </button>
 
-          {/* Settings button */}
+          {/* Settings button - hidden on small screens */}
           <button
             title="Settings"
             onClick={() => showToast('Settings coming soon')}
-            className="w-7 h-7 flex items-center justify-center rounded-full bg-gray-100 text-gray-500 hover:bg-gray-200 hover:text-gray-700 transition-colors"
+            className="hidden sm:flex w-7 h-7 items-center justify-center rounded-full bg-gray-100 text-gray-500 hover:bg-gray-200 hover:text-gray-700 transition-colors"
           >
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <circle cx="12" cy="12" r="3" />
@@ -483,7 +483,7 @@ export default function HomePage() {
           <button
             onClick={handleStartStop}
             title={simulation.isRunning ? 'Stop simulation' : 'Start simulation'}
-            className="w-7 h-7 flex items-center justify-center rounded-full bg-gray-100 text-gray-500 hover:bg-gray-200 hover:text-gray-700 transition-colors"
+            className="w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center rounded-full bg-[#4361EE] text-white hover:bg-[#3a56d4] transition-colors"
           >
             {simulation.isRunning ? (
               <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
@@ -497,11 +497,11 @@ export default function HomePage() {
             )}
           </button>
 
-          {/* Search button */}
+          {/* Search button - hidden on very small screens */}
           <button
             title="Search"
             onClick={() => showToast('Search coming soon')}
-            className="w-7 h-7 flex items-center justify-center rounded-full bg-gray-100 text-gray-500 hover:bg-gray-200 hover:text-gray-700 transition-colors"
+            className="hidden xs:flex w-7 h-7 items-center justify-center rounded-full bg-gray-100 text-gray-500 hover:bg-gray-200 hover:text-gray-700 transition-colors"
           >
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <circle cx="11" cy="11" r="8" />
@@ -565,7 +565,7 @@ export default function HomePage() {
       {/* ═══════════════════════════════════════════════════════════════════
           FOOTER — STATUS BAR
           ═══════════════════════════════════════════════════════════════════ */}
-      <footer className="flex items-center justify-between px-2 sm:px-3 py-1 bg-[#F8F9FA] border-t border-[#E9ECEF] select-none shrink-0">
+      <footer className="flex items-center justify-between px-1.5 sm:px-3 py-1 bg-[#F8F9FA] border-t border-[#E9ECEF] select-none shrink-0" style={{ paddingBottom: 'max(4px, env(safe-area-inset-bottom))' }}>
         {/* Left: Brand + version */}
         <div className="flex items-center gap-1 sm:gap-2 text-[10px] min-w-0">
           <span className="font-semibold text-gray-500">Eesha Learn</span>

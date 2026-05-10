@@ -13,20 +13,24 @@ interface DragState {
   componentId: string;
   offsetX: number;
   offsetY: number;
+  hasMoved: boolean;
 }
 interface PanState {
   startX: number;
   startY: number;
   startPanX: number;
   startPanY: number;
+  hasMoved: boolean;
 }
 
 export function CanvasWorkspace() {
+  const containerRef = useRef<HTMLDivElement>(null);
   const svgRef = useRef<SVGSVGElement>(null);
   const draggingRef = useRef<DragState | null>(null);
   const panningRef = useRef<PanState | null>(null);
   const pinchStartDistRef = useRef<number | null>(null);
   const pinchStartZoomRef = useRef<number | null>(null);
+  const pinchMidRef = useRef<{ x: number; y: number; panX: number; panY: number } | null>(null);
   const pinHandledRef = useRef(false);
 
   // State that triggers re-renders
@@ -36,7 +40,7 @@ export function CanvasWorkspace() {
 
   const {
     workspace, setPanOffset, setZoom,
-    components, moveComponent, removeComponent,
+    components, moveComponent, removeComponent, addComponent,
     wires, wireDraft,
     startWireDraft, updateWireDraft, addWireWaypoint, cancelWireDraft, finishWireDraft,
     selectedComponentId, setSelectedComponent,
@@ -48,19 +52,26 @@ export function CanvasWorkspace() {
   const allPinPositions = shouldShowPinDots ? getAllPinPositions(components) : [];
 
   // ─── Convert client coordinates to SVG world coordinates ─────────────────
-  function clientToWorld(clientX: number, clientY: number, currentZoom: number, currentPan: { x: number; y: number }) {
+  // SVG group transform: translate(panX*zoom, panY*zoom) scale(zoom)
+  // World (wx,wy) → SVG coord: (panX*zoom + wx*zoom, panY*zoom + wy*zoom)
+  // Inverse: wx = (svgX - panX*zoom) / zoom = svgX/zoom - panX
+  function clientToWorld(clientX: number, clientY: number, currentZoom?: number, currentPan?: { x: number; y: number }) {
     const svg = svgRef.current;
     if (!svg) return { x: 0, y: 0 };
     const rect = svg.getBoundingClientRect();
+    const z = currentZoom ?? useSimulatorStore.getState().workspace.zoom;
+    const p = currentPan ?? useSimulatorStore.getState().workspace.panOffset;
+    const svgX = clientX - rect.left;
+    const svgY = clientY - rect.top;
     return {
-      x: (clientX - rect.left - rect.width / 2) / currentZoom - currentPan.x,
-      y: (clientY - rect.top - rect.height / 2) / currentZoom - currentPan.y,
+      x: svgX / z - p.x,
+      y: svgY / z - p.y,
     };
   }
 
   // ─── Pin proximity threshold (generous for touch devices) ───────────────
   function getPinThreshold(currentZoom: number) {
-    return Math.max(20, 28 / currentZoom);
+    return Math.max(20, 30 / currentZoom);
   }
 
   // ─── Core interaction start (mouse & touch unified) ─────────────────────
@@ -86,6 +97,8 @@ export function CanvasWorkspace() {
       return;
     }
 
+    pinHandledRef.current = false;
+
     // 2. Check if clicking on a component → start drag
     if (target) {
       const compData = target.closest('[data-component-id]');
@@ -95,7 +108,7 @@ export function CanvasWorkspace() {
           store.setSelectedComponent(compId);
           const comp = currentComponents.find((c) => c.id === compId);
           if (comp && !currentWireDraft) {
-            draggingRef.current = { componentId: compId, offsetX: world.x - comp.x, offsetY: world.y - comp.y };
+            draggingRef.current = { componentId: compId, offsetX: world.x - comp.x, offsetY: world.y - comp.y, hasMoved: false };
           }
           return;
         }
@@ -122,6 +135,7 @@ export function CanvasWorkspace() {
       startY: clientY,
       startPanX: currentPanOffset.x,
       startPanY: currentPanOffset.y,
+      hasMoved: false,
     };
   }
 
@@ -140,6 +154,9 @@ export function CanvasWorkspace() {
       const dx = (clientX - p.startX) / currentZoom;
       const dy = (clientY - p.startY) / currentZoom;
       store.setPanOffset({ x: p.startPanX + dx, y: p.startPanY + dy });
+      if (Math.abs(clientX - p.startX) > 3 || Math.abs(clientY - p.startY) > 3) {
+        p.hasMoved = true;
+      }
       return;
     }
 
@@ -148,6 +165,7 @@ export function CanvasWorkspace() {
       const d = draggingRef.current;
       const world = clientToWorld(clientX, clientY, currentZoom, currentPanOffset);
       store.moveComponent(d.componentId, world.x - d.offsetX, world.y - d.offsetY);
+      d.hasMoved = true;
       return;
     }
 
@@ -174,6 +192,7 @@ export function CanvasWorkspace() {
     panningRef.current = null;
     pinchStartDistRef.current = null;
     pinchStartZoomRef.current = null;
+    pinchMidRef.current = null;
   }
 
   // ─── Mouse event handlers ──────────────────────────────────────────────
@@ -196,10 +215,17 @@ export function CanvasWorkspace() {
 
     // Two-finger pinch zoom start
     if (e.touches.length === 2) {
-      const dx = e.touches[0].clientX - e.touches[1].clientX;
-      const dy = e.touches[0].clientY - e.touches[1].clientY;
+      const t0 = e.touches[0];
+      const t1 = e.touches[1];
+      const dx = t0.clientX - t1.clientX;
+      const dy = t0.clientY - t1.clientY;
       pinchStartDistRef.current = Math.sqrt(dx * dx + dy * dy);
       pinchStartZoomRef.current = useSimulatorStore.getState().workspace.zoom;
+      const midX = (t0.clientX + t1.clientX) / 2;
+      const midY = (t0.clientY + t1.clientY) / 2;
+      const pan = useSimulatorStore.getState().workspace.panOffset;
+      const worldMid = clientToWorld(midX, midY);
+      pinchMidRef.current = { x: midX, y: midY, panX: worldMid.x, panY: worldMid.y };
       cancelWireDraft();
       draggingRef.current = null;
       panningRef.current = null;
@@ -208,24 +234,38 @@ export function CanvasWorkspace() {
 
     if (e.touches.length !== 1) return;
     const touch = e.touches[0];
+    // Use document.elementFromPoint to find the actual element under touch
+    const el = document.elementFromPoint(touch.clientX, touch.clientY);
     handleInteractionStart(
       touch.clientX,
       touch.clientY,
-      document.elementFromPoint(touch.clientX, touch.clientY) as SVGElement | null
+      el as SVGElement | null
     );
   }
 
   function handleTouchMove(e: React.TouchEvent<SVGSVGElement>) {
     if (e.cancelable) e.preventDefault();
 
-    // Pinch zoom
-    if (e.touches.length === 2 && pinchStartDistRef.current !== null && pinchStartZoomRef.current !== null) {
-      const dx = e.touches[0].clientX - e.touches[1].clientX;
-      const dy = e.touches[0].clientY - e.touches[1].clientY;
+    // Pinch zoom with pan centering
+    if (e.touches.length === 2 && pinchStartDistRef.current !== null && pinchStartZoomRef.current !== null && pinchMidRef.current) {
+      const t0 = e.touches[0];
+      const t1 = e.touches[1];
+      const dx = t0.clientX - t1.clientX;
+      const dy = t0.clientY - t1.clientY;
       const dist = Math.sqrt(dx * dx + dy * dy);
       const scale = dist / pinchStartDistRef.current;
       const newZoom = Math.max(0.25, Math.min(3, pinchStartZoomRef.current * scale));
-      setZoom(newZoom);
+
+      const midX = (t0.clientX + t1.clientX) / 2;
+      const midY = (t0.clientY + t1.clientY) / 2;
+      const pm = pinchMidRef.current;
+      // Adjust pan so the midpoint stays stable
+      const newPanX = pm.panX - (midX - pm.x) / newZoom;
+      const newPanY = pm.panY - (midY - pm.y) / newZoom;
+
+      const store = useSimulatorStore.getState();
+      store.setZoom(newZoom);
+      store.setPanOffset({ x: newPanX, y: newPanY });
       return;
     }
 
@@ -241,6 +281,7 @@ export function CanvasWorkspace() {
     } else if (e.touches.length === 1) {
       pinchStartDistRef.current = null;
       pinchStartZoomRef.current = null;
+      pinchMidRef.current = null;
     }
   }
 
@@ -254,6 +295,8 @@ export function CanvasWorkspace() {
   // ─── Keyboard shortcuts ───────────────────────────────────────────────
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      // Don't handle shortcuts when typing in inputs
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
       if (e.key === 'Delete' || e.key === 'Backspace') {
         if (selectedComponentId && !wireDraft) {
           removeComponent(selectedComponentId);
@@ -285,18 +328,35 @@ export function CanvasWorkspace() {
     }
   }
 
-  // ─── Compute cursor style (derived from wireDraft state only, not refs) ─
+  // ─── Drag-from-palette: handle drop ───────────────────────────────────
+  const handleDragOver = useCallback((e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'copy';
+  }, []);
+
+  const handleDrop = useCallback((e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    const defId = e.dataTransfer.getData('application/component-type');
+    if (!defId) return;
+    const world = clientToWorld(e.clientX, e.clientY);
+    addComponent(defId, world.x, world.y);
+  }, [addComponent]);
+
+  // ─── Compute cursor style ──────────────────────────────────────────────
   const cursorStyle = wireDraft ? 'crosshair' : 'grab';
 
   return (
     <div
+      ref={containerRef}
       className="flex-1 relative overflow-hidden bg-white"
       onMouseEnter={() => setShowPinDots(true)}
       onMouseLeave={() => { setShowPinDots(false); setNearPin(null); }}
+      onDragOver={handleDragOver}
+      onDrop={handleDrop}
     >
       {/* Subtle dot grid background */}
       <div
-        className="absolute inset-0"
+        className="absolute inset-0 pointer-events-none"
         style={{
           backgroundImage: showGrid
             ? 'radial-gradient(circle, #d1d5db 0.8px, transparent 0.8px)'
@@ -331,8 +391,8 @@ export function CanvasWorkspace() {
       >
         <g transform={`translate(${panOffset.x * zoom}, ${panOffset.y * zoom}) scale(${zoom})`}>
           {/* Workspace origin indicator */}
-          <line x1="-20" y1="0" x2="20" y2="0" stroke="#e5e7eb" strokeWidth="1" />
-          <line x1="0" y1="-20" x2="0" y2="20" stroke="#e5e7eb" strokeWidth="1" />
+          <line x1="-20" y1="0" x2="20" y2="0" stroke="#e5e7eb" strokeWidth="1" className="pointer-events-none" />
+          <line x1="0" y1="-20" x2="0" y2="20" stroke="#e5e7eb" strokeWidth="1" className="pointer-events-none" />
 
           {/* Wires (render behind components) */}
           <WireRenderer
@@ -394,21 +454,9 @@ export function CanvasWorkspace() {
                     selected={comp.id === selectedComponentId}
                     onPinClick={(pinId: string, absX: number, absY: number) => handlePinClick(comp.id, pinId, absX, absY)}
                   />
-                  {/* Invisible overlay for drag - covers entire board */}
-                  <rect
-                    x={comp.x - 5}
-                    y={comp.y - 5}
-                    width={300}
-                    height={223}
-                    fill="transparent"
-                    className="cursor-move"
-                    style={{ touchAction: 'none' }}
-                  />
                 </g>
               );
             }
-            const maxPinX = comp.pins.length > 0 ? Math.max(...comp.pins.map(p => p.offset.x)) : 70;
-            const maxPinY = comp.pins.length > 0 ? Math.max(...comp.pins.map(p => p.offset.y)) : 50;
             return (
               <g key={comp.id} data-component-id={comp.id}>
                 <ComponentRenderer
@@ -416,23 +464,13 @@ export function CanvasWorkspace() {
                   selected={comp.id === selectedComponentId}
                   onPinClick={(pinId: string, absX: number, absY: number) => handlePinClick(comp.id, pinId, absX, absY)}
                 />
-                {/* Invisible overlay for drag */}
-                <rect
-                  x={comp.x - 10}
-                  y={comp.y - 10}
-                  width={maxPinX + 40}
-                  height={maxPinY + 40}
-                  fill="transparent"
-                  className="cursor-move"
-                  style={{ touchAction: 'none' }}
-                />
               </g>
             );
           })}
 
           {/* Empty state */}
           {components.length === 0 && (
-            <text x="0" y="-30" textAnchor="middle" fill="#d1d5db" fontSize="16" fontFamily="sans-serif">
+            <text x="0" y="-30" textAnchor="middle" fill="#d1d5db" fontSize="16" fontFamily="sans-serif" className="pointer-events-none">
               Add components from the + Components panel
             </text>
           )}
@@ -440,25 +478,25 @@ export function CanvasWorkspace() {
       </svg>
 
       {/* Zoom controls */}
-      <div className="absolute bottom-4 right-4 flex items-center gap-1 bg-white/90 backdrop-blur-sm border border-gray-200 rounded-lg px-2 py-1 shadow-sm">
+      <div className="absolute bottom-3 right-3 sm:bottom-4 sm:right-4 flex items-center gap-0.5 sm:gap-1 bg-white/90 backdrop-blur-sm border border-gray-200 rounded-lg px-1.5 sm:px-2 py-1 shadow-sm">
         <button
           onClick={() => setZoom(zoom - 0.1)}
-          className="w-7 h-7 flex items-center justify-center text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded transition-colors"
+          className="w-8 h-8 sm:w-7 sm:h-7 flex items-center justify-center text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded transition-colors"
           aria-label="Zoom out"
         >
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M5 12h14" /></svg>
         </button>
-        <span className="text-[10px] text-gray-500 font-mono min-w-[2.5rem] text-center tabular-nums">{Math.round(zoom * 100)}%</span>
+        <span className="text-[10px] sm:text-[11px] text-gray-500 font-mono min-w-[2.5rem] text-center tabular-nums select-none">{Math.round(zoom * 100)}%</span>
         <button
           onClick={() => setZoom(zoom + 0.1)}
-          className="w-7 h-7 flex items-center justify-center text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded transition-colors"
+          className="w-8 h-8 sm:w-7 sm:h-7 flex items-center justify-center text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded transition-colors"
           aria-label="Zoom in"
         >
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 5v14M5 12h14" /></svg>
         </button>
         <button
-          onClick={() => setZoom(1)}
-          className="w-7 h-7 flex items-center justify-center text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded transition-colors text-[10px] font-mono"
+          onClick={() => { setZoom(1); setPanOffset({ x: 0, y: 0 }); }}
+          className="w-8 h-8 sm:w-7 sm:h-7 flex items-center justify-center text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded transition-colors text-[10px] font-mono"
           aria-label="Reset zoom"
         >
           1:1
@@ -467,12 +505,12 @@ export function CanvasWorkspace() {
 
       {/* Wire creation overlay hint */}
       {wireDraft && (
-        <div className="absolute top-3 left-1/2 -translate-x-1/2 bg-[#4361EE]/90 backdrop-blur text-white text-xs px-3 py-1.5 rounded-full flex items-center gap-2 shadow-lg max-w-[90vw]">
+        <div className="absolute top-3 left-1/2 -translate-x-1/2 bg-[#4361EE]/90 backdrop-blur text-white text-xs px-3 py-1.5 rounded-full flex items-center gap-2 shadow-lg max-w-[90vw] z-10">
           <span className="h-1.5 w-1.5 rounded-full bg-white animate-pulse shrink-0" />
           <span className="truncate">
             {nearPin
               ? `Connect to ${nearPin.pinId}`
-              : 'Tap/click a pin to connect · Tap canvas for waypoint'
+              : 'Tap a pin to connect · Tap canvas for waypoint'
             }
           </span>
           <button
@@ -481,6 +519,24 @@ export function CanvasWorkspace() {
           >
             Cancel
           </button>
+        </div>
+      )}
+
+      {/* Selected component info (mobile) */}
+      {selectedComponentId && !wireDraft && (
+        <div className="absolute bottom-14 right-3 sm:bottom-16 sm:right-4 bg-white/90 backdrop-blur-sm border border-gray-200 rounded-lg px-2 py-1.5 shadow-sm text-[10px] text-gray-500 max-w-[160px] z-10 sm:hidden">
+          {(() => {
+            const comp = components.find(c => c.id === selectedComponentId);
+            if (!comp) return null;
+            const def = comp.defId.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+            return (
+              <div className="flex items-center gap-1.5">
+                <span className="font-medium text-gray-700 truncate">{def}</span>
+                <span className="text-gray-300">|</span>
+                <span className="text-red-400" onClick={() => { removeComponent(selectedComponentId); setSelectedComponent(null); }}>Delete</span>
+              </div>
+            );
+          })()}
         </div>
       )}
     </div>

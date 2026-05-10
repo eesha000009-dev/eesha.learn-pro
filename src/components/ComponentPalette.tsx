@@ -12,12 +12,26 @@ export function ComponentPalette() {
     (defId: string) => {
       const def = COMPONENT_DEFINITIONS.find((d) => d.type === defId);
       if (!def) return;
-      // Place in the workspace with some offset
-      const offset = Math.random() * 100 - 50;
-      addComponent(defId, def.defaultX + offset, def.defaultY + offset);
+      // Place in the center of the visible viewport
+      const store = useSimulatorStore.getState();
+      const { panOffset, zoom } = store.workspace;
+      // Center of viewport in world coords (approximate)
+      const centerX = 200 / zoom - panOffset.x;
+      const centerY = 150 / zoom - panOffset.y;
+      addComponent(defId, centerX, centerY);
     },
     [addComponent]
   );
+
+  // Drag start handler for desktop drag-to-canvas
+  const handleDragStart = useCallback((e: React.DragEvent<HTMLButtonElement>, defId: string) => {
+    e.dataTransfer.setData('application/component-type', defId);
+    e.dataTransfer.effectAllowed = 'copy';
+    // Set a small transparent drag image
+    const img = new Image();
+    img.src = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
+    e.dataTransfer.setDragImage(img, 0, 0);
+  }, []);
 
   // ─── Build categorized list ────────────────────────────────────────────
   const categories = COMPONENT_CATEGORIES.map((cat) => ({
@@ -106,8 +120,10 @@ export function ComponentPalette() {
                   return (
                     <button
                       key={comp.type}
+                      draggable
+                      onDragStart={(e) => handleDragStart(e, comp.type)}
                       onClick={() => handleAddComponent(comp.type)}
-                      className="w-full flex items-center gap-2 px-2 py-2 sm:py-1.5 rounded text-left text-xs text-gray-500 hover:bg-gray-50 hover:text-gray-800 transition-all group active:bg-gray-100"
+                      className="w-full flex items-center gap-2 px-2 py-2.5 sm:py-2 rounded text-left text-xs text-gray-500 hover:bg-gray-50 hover:text-gray-800 transition-all group active:bg-gray-100 cursor-grab active:cursor-grabbing"
                     >
                       <span className="text-base shrink-0">{cat?.icon ?? '📦'}</span>
                       <div className="min-w-0">
@@ -138,8 +154,10 @@ export function ComponentPalette() {
                   {cat.components.map((comp) => (
                     <button
                       key={comp.type}
+                      draggable
+                      onDragStart={(e) => handleDragStart(e, comp.type)}
                       onClick={() => handleAddComponent(comp.type)}
-                      className="w-full flex items-center gap-2 px-2 py-2 sm:py-1.5 rounded text-left text-xs text-gray-500 hover:bg-gray-50 hover:text-gray-800 transition-all group active:bg-gray-100"
+                      className="w-full flex items-center gap-2 px-2 py-2.5 sm:py-2 rounded text-left text-xs text-gray-500 hover:bg-gray-50 hover:text-gray-800 transition-all group active:bg-gray-100 cursor-grab active:cursor-grabbing"
                     >
                       <span className="text-base shrink-0">{cat.icon}</span>
                       <div className="min-w-0">
@@ -152,6 +170,12 @@ export function ComponentPalette() {
               </div>
             ))
           )}
+        </div>
+
+        {/* Help text */}
+        <div className="px-3 py-2 border-t border-[#E9ECEF] text-[10px] text-gray-400 shrink-0">
+          <span className="hidden md:inline">Click to add · Drag to canvas</span>
+          <span className="md:hidden">Tap to add to canvas</span>
         </div>
       </div>
     </>
