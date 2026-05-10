@@ -177,3 +177,30 @@ Stage Summary:
 - Component palette: slide-in overlay on mobile, side panel on desktop
 - Lint passes clean (0 errors)
 - Page compiles successfully (GET / 200 in 1435ms)
+---
+Task ID: 1
+Agent: main
+Task: Fix pin-to-pin wiring, make components draggable, add responsive design
+
+Work Log:
+- Analyzed entire codebase to understand current state
+- Found critical bug in clientToWorld() in CanvasWorkspace.tsx: was subtracting rect.width/2 and rect.height/2 from coordinate conversion, causing all pin proximity detection to fail
+- Fixed clientToWorld to use correct SVG inverse transform: worldX = (clientX - rect.left) / zoom - panOffset.x
+- Removed invisible drag overlay rectangles that blocked pin click events on touch devices
+- Added HTML5 Drag & Drop support: components can be dragged from palette to canvas on desktop
+- Improved pinch-to-zoom with center-point stabilization for mobile
+- Made components draggable on both touch and mouse (was already partially implemented but coords were broken)
+- Added comprehensive responsive CSS media queries for all device sizes (very small phones through ultra-wide monitors)
+- Added custom Tailwind CSS 4 xs breakpoint (475px) for small phone layouts
+- Compact toolbar on mobile (hide pause/settings/search on very small screens)
+- Made play button use brand color for better visibility
+- Added mobile-only selected component info overlay with delete option
+- Added safe-area-inset support for notched phones
+- Added print styles, reduced-motion support, and high DPI optimizations
+
+Stage Summary:
+- Pin-to-pin wiring now works correctly on both desktop and mobile
+- Components are draggable on both touch and mouse
+- Responsive design works on all device sizes from 320px to 2560px+
+- Drag-from-palette to canvas supported on desktop
+- All changes committed and pushed to GitHub
