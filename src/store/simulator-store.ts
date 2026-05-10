@@ -8,10 +8,10 @@ import type {
   WireDraft,
   EditorTab,
   Vec2,
-  ComponentDef,
 } from '@/types';
-import { BOARD_DEFINITIONS, COMPONENT_DEFINITIONS } from '@/lib/component-defs';
-import type { Pin } from '@/types';
+import { COMPONENT_DEFINITIONS } from '@/lib/component-defs';
+import { getPinWorldPosition, findClosestPin } from '@/lib/pin-position';
+import { autoWireColor, getWireSignalType } from '@/lib/wire-utils';
 import {
   exportToWokwiDiagram,
   importFromWokwiDiagram,
@@ -19,6 +19,7 @@ import {
   LS_KEY_EDITOR,
 } from '@/lib/diagram';
 import type { WokwiDiagram, ProjectSave } from '@/lib/diagram';
+import type { Pin } from '@/types';
 
 interface SimulatorStore {
   // ─── Active Tab ──────────────────────────────────────────────────────────
@@ -55,9 +56,11 @@ interface SimulatorStore {
   removeWire: (id: string) => void;
   startWireDraft: (componentId: string, pinId: string, startX: number, startY: number) => void;
   updateWireDraft: (x: number, y: number) => void;
+  addWireWaypoint: (x: number, y: number) => void;
   cancelWireDraft: () => void;
   finishWireDraft: (componentId: string, pinId: string) => void;
   setWireColor: (color: string) => void;
+  updateWirePositions: (componentId: string) => void;
 
   // ─── Simulation ──────────────────────────────────────────────────────────
   simulation: SimulationState;
@@ -103,26 +106,6 @@ const defaultSimulation: SimulationState = {
   errors: [],
   pinStates: {},
 };
-
-const DEFAULT_SKETCH_CODE = `// Eesha Learn - Arduino Sketch
-// LED Blink on Pin 13
-
-void setup() {
-  pinMode(13, OUTPUT);
-  Serial.begin(9600);
-  Serial.println("Eesha Learn - LED Blink");
-}
-
-void loop() {
-  digitalWrite(13, HIGH);
-  Serial.println("LED ON");
-  delay(1000);
-
-  digitalWrite(13, LOW);
-  Serial.println("LED OFF");
-  delay(1000);
-}
-`;
 
 export const useSimulatorStore = create<SimulatorStore>((set, get) => ({
   activeTab: 'design',
@@ -208,26 +191,83 @@ export const useSimulatorStore = create<SimulatorStore>((set, get) => ({
 
   wires: [],
   wireDraft: null,
-  wireColor: '#ef4444',
+  wireColor: '#22c55e',
+
   addWire: (from, to) => {
-    const { wireColor, wires } = get();
+    const { wireColor, wires, components } = get();
     const id = `wire-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
-    set({ wires: [...wires, { id, from, to, color: wireColor }] });
+
+    // Compute cached positions
+    const startPin = getPinWorldPosition(from.componentId, from.pinId, components);
+    const endPin = getPinWorldPosition(to.componentId, to.pinId, components);
+
+    // Auto-detect signal type
+    const signalType = getWireSignalType(from.pinId) || getWireSignalType(to.pinId);
+
+    // Auto-detect color from pins if using default
+    const pinColor = autoWireColor(from.pinId);
+
+    const wire: Wire = {
+      id,
+      start: {
+        componentId: from.componentId,
+        pinId: from.pinId,
+        x: startPin?.x ?? 0,
+        y: startPin?.y ?? 0,
+      },
+      end: {
+        componentId: to.componentId,
+        pinId: to.pinId,
+        x: endPin?.x ?? 0,
+        y: endPin?.y ?? 0,
+      },
+      waypoints: [],
+      color: wireColor === '#22c55e' ? pinColor : wireColor,
+      signalType: signalType || undefined,
+      // Backward compat with diagram.ts
+      from: { ...from },
+      to: { ...to },
+    };
+    set({ wires: [...wires, wire] });
   },
+
   removeWire: (id) =>
     set((s) => ({
       wires: s.wires.filter((w) => w.id !== id),
       selectedWireId: s.selectedWireId === id ? null : s.selectedWireId,
     })),
-  startWireDraft: (componentId, pinId, startX, startY) =>
+
+  startWireDraft: (componentId, pinId, startX, startY) => {
+    // Auto-detect wire color from pin
+    const color = autoWireColor(pinId);
     set({
-      wireDraft: { fromComponentId: componentId, fromPinId: pinId, startX, startY, currentX: startX, currentY: startY },
-    }),
+      wireDraft: {
+        fromComponentId: componentId,
+        fromPinId: pinId,
+        startX,
+        startY,
+        currentX: startX,
+        currentY: startY,
+        waypoints: [],
+        color,
+      },
+    });
+  },
+
   updateWireDraft: (x, y) =>
     set((s) =>
       s.wireDraft ? { wireDraft: { ...s.wireDraft, currentX: x, currentY: y } } : {}
     ),
+
+  addWireWaypoint: (x, y) =>
+    set((s) =>
+      s.wireDraft
+        ? { wireDraft: { ...s.wireDraft, waypoints: [...s.wireDraft.waypoints, { x, y }] } }
+        : {}
+    ),
+
   cancelWireDraft: () => set({ wireDraft: null }),
+
   finishWireDraft: (componentId, pinId) => {
     const { wireDraft, addWire } = get();
     if (wireDraft) {
@@ -238,7 +278,35 @@ export const useSimulatorStore = create<SimulatorStore>((set, get) => ({
       set({ wireDraft: null });
     }
   },
+
   setWireColor: (color) => set({ wireColor: color }),
+
+  updateWirePositions: (componentId) =>
+    set((s) => {
+      const { components } = s;
+      return {
+        wires: s.wires.map((w) => {
+          if (w.start.componentId !== componentId && w.end.componentId !== componentId) {
+            return w;
+          }
+          const startPin = getPinWorldPosition(w.start.componentId, w.start.pinId, components);
+          const endPin = getPinWorldPosition(w.end.componentId, w.end.pinId, components);
+          return {
+            ...w,
+            start: {
+              ...w.start,
+              x: startPin?.x ?? w.start.x,
+              y: startPin?.y ?? w.start.y,
+            },
+            end: {
+              ...w.end,
+              x: endPin?.x ?? w.end.x,
+              y: endPin?.y ?? w.end.y,
+            },
+          };
+        }),
+      };
+    }),
 
   simulation: { ...defaultSimulation },
   setRunning: (running) =>
@@ -302,7 +370,7 @@ export const useSimulatorStore = create<SimulatorStore>((set, get) => ({
     }),
   setActiveEditorTab: (id) => set({ activeEditorTabId: id }),
 
-  showPalette: true,
+  showPalette: false,
   togglePalette: () => set((s) => ({ showPalette: !s.showPalette })),
   showSerialMonitor: true,
   toggleSerialMonitor: () => set((s) => ({ showSerialMonitor: !s.showSerialMonitor })),

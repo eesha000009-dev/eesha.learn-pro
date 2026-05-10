@@ -7,59 +7,59 @@ import { useSimulatorStore } from '@/store/simulator-store';
 const MonacoEditor = dynamic(() => import('@monaco-editor/react'), {
   ssr: false,
   loading: () => (
-    <div className="flex items-center justify-center h-full bg-zinc-950">
-      <div className="flex items-center gap-2 text-zinc-600">
-        <div className="h-4 w-4 border-2 border-zinc-700 border-t-emerald-500 rounded-full animate-spin" />
+    <div className="flex items-center justify-center h-full bg-white">
+      <div className="flex items-center gap-2 text-gray-400">
+        <div className="h-4 w-4 border-2 border-gray-200 border-t-[#4361EE] rounded-full animate-spin" />
         <span className="text-xs">Loading editor...</span>
       </div>
     </div>
   ),
 });
 
-// ─── Arduino Dark Theme ────────────────────────────────────────────────────
+// ─── Arduino Light Theme ───────────────────────────────────────────────────
 
-const ARDUINO_THEME: { base: string; inherit: boolean; rules: any[]; colors: Record<string, string> } = {
-  base: 'vs-dark',
+const ARDUINO_LIGHT_THEME: { base: string; inherit: boolean; rules: any[]; colors: Record<string, string> } = {
+  base: 'vs',
   inherit: true,
   rules: [
-    { token: 'keyword.arduino', foreground: '10b981', fontStyle: 'bold' },
-    { token: 'keyword.control', foreground: '10b981' },
-    { token: 'keyword', foreground: '10b981' },
-    { token: 'string', foreground: 'f59e0b' },
-    { token: 'string.escape', foreground: 'fbbf24' },
-    { token: 'number', foreground: '38bdf8' },
-    { token: 'comment', foreground: '71717a', fontStyle: 'italic' },
-    { token: 'type', foreground: 'c084fc' },
-    { token: 'entity.name.function', foreground: '6ee7b7' },
-    { token: 'delimiter', foreground: 'a1a1aa' },
-    { token: 'keyword.preprocessor', foreground: 'fb923c' },
-    { token: 'constant', foreground: '22d3ee' },
-    { token: 'variable', foreground: 'e4e4e7' },
-    { token: 'operator', foreground: 'a1a1aa' },
+    { token: 'keyword.arduino', foreground: '#4361EE', fontStyle: 'bold' },
+    { token: 'keyword.control', foreground: '#4361EE' },
+    { token: 'keyword', foreground: '#4361EE' },
+    { token: 'string', foreground: '#c7254e' },
+    { token: 'string.escape', foreground: '#a41e22' },
+    { token: 'number', foreground: '#098658' },
+    { token: 'comment', foreground: '#6a9955', fontStyle: 'italic' },
+    { token: 'type', foreground: '#8b5cf6' },
+    { token: 'entity.name.function', foreground: '#267f99' },
+    { token: 'delimiter', foreground: '#868686' },
+    { token: 'keyword.preprocessor', foreground: '#c7254e' },
+    { token: 'constant', foreground: '#098658' },
+    { token: 'variable', foreground: '#1e1e1e' },
+    { token: 'operator', foreground: '#868686' },
   ],
   colors: {
-    'editor.background': '#09090b',
-    'editor.foreground': '#e4e4e7',
-    'editor.lineHighlightBackground': '#18181b',
-    'editor.selectionBackground': '#10b98133',
-    'editorCursor.foreground': '#10b981',
-    'editorWhitespace.foreground': '#27272a',
-    'editorIndentGuide.background': '#1c1c20',
-    'editorIndentGuide.activeBackground': '#10b98130',
-    'editorLineNumber.foreground': '#3f3f46',
-    'editorLineNumber.activeForeground': '#71717a',
-    'editorBracketMatch.background': '#10b98120',
-    'editorBracketMatch.border': '#10b98150',
-    'editorGutter.background': '#09090b',
-    'editorWidget.background': '#0f0f12',
-    'editorWidget.border': '#27272a',
-    'editorSuggestWidget.background': '#0f0f12',
-    'editorSuggestWidget.border': '#27272a',
-    'editorSuggestWidget.selectedBackground': '#18181b',
-    'editorSuggestWidget.highlightForeground': '#10b981',
-    'scrollbarSlider.background': '#3f3f4680',
-    'scrollbarSlider.hoverBackground': '#3f3f46a0',
-    'minimap.background': '#09090b',
+    'editor.background': '#ffffff',
+    'editor.foreground': '#1e1e1e',
+    'editor.lineHighlightBackground': '#f5f5f5',
+    'editor.selectionBackground': '#4361EE33',
+    'editorCursor.foreground': '#4361EE',
+    'editorWhitespace.foreground': '#e0e0e0',
+    'editorIndentGuide.background': '#efefef',
+    'editorIndentGuide.activeBackground': '#4361EE30',
+    'editorLineNumber.foreground': '#b0b0b0',
+    'editorLineNumber.activeForeground': '#1e1e1e',
+    'editorBracketMatch.background': '#4361EE15',
+    'editorBracketMatch.border': '#4361EE50',
+    'editorGutter.background': '#ffffff',
+    'editorWidget.background': '#f8f8f8',
+    'editorWidget.border': '#e0e0e0',
+    'editorSuggestWidget.background': '#f8f8f8',
+    'editorSuggestWidget.border': '#e0e0e0',
+    'editorSuggestWidget.selectedBackground': '#e8e8e8',
+    'editorSuggestWidget.highlightForeground': '#4361EE',
+    'scrollbarSlider.background': '#c0c0c080',
+    'scrollbarSlider.hoverBackground': '#c0c0c0a0',
+    'minimap.background': '#ffffff',
     'editorError.foreground': '#ef4444',
     'editorWarning.foreground': '#f59e0b',
   },
@@ -211,8 +211,8 @@ export function CodeEditorPanel() {
   const handleMount = useCallback((editor: any, monaco: any) => {
     editorRef.current = editor;
     monacoRef.current = monaco;
-    monaco.editor.defineTheme('arduino-dark', ARDUINO_THEME);
-    monaco.editor.setTheme('arduino-dark');
+    monaco.editor.defineTheme('arduino-light', ARDUINO_LIGHT_THEME);
+    monaco.editor.setTheme('arduino-light');
     if (!langsRegistered) {
       registerArduinoLanguage(monaco);
       setLangsRegistered(true);
@@ -251,29 +251,29 @@ export function CodeEditorPanel() {
   );
 
   return (
-    <div className="flex flex-col h-full bg-zinc-950">
+    <div className="flex flex-col h-full bg-white">
       {/* Tab bar */}
-      <div className="flex items-center bg-zinc-900/80 border-b border-zinc-800 min-h-[36px]">
+      <div className="flex items-center bg-[#F8F9FA] border-b border-[#E9ECEF] min-h-[36px]">
         {editorTabs.map((tab) => {
           const isActive = tab.id === activeEditorTabId;
           return (
             <div
               key={tab.id}
-              className={`group flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium border-r border-zinc-800/50 cursor-pointer transition-all ${
+              className={`group flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium border-r border-[#E9ECEF] cursor-pointer transition-all ${
                 isActive
-                  ? 'bg-zinc-950 text-zinc-100 border-t-2 border-t-emerald-500'
-                  : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/30 border-t-2 border-t-transparent'
+                  ? 'bg-white text-gray-800 border-t-2 border-t-[#4361EE]'
+                  : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50 border-t-2 border-t-transparent'
               }`}
               onClick={() => setActiveEditorTab(tab.id)}
             >
               <svg width="12" height="12" viewBox="0 0 16 16" fill="none" className="shrink-0">
-                <rect x="1" y="1" width="14" height="14" rx="2" fill="#0ea5e9" fillOpacity="0.15" stroke="#0ea5e9" strokeWidth="1" />
-                <text x="8" y="11" textAnchor="middle" fill="#0ea5e9" fontSize="6" fontWeight="700" fontFamily="monospace">C</text>
+                <rect x="1" y="1" width="14" height="14" rx="2" fill="#4361EE" fillOpacity="0.1" stroke="#4361EE" strokeWidth="1" />
+                <text x="8" y="11" textAnchor="middle" fill="#4361EE" fontSize="6" fontWeight="700" fontFamily="monospace">C</text>
               </svg>
               <span>{tab.name}</span>
               {tab.modified && <span className="h-1.5 w-1.5 rounded-full bg-amber-400" />}
               <button
-                className="ml-1 p-0.5 rounded opacity-0 group-hover:opacity-100 hover:text-red-400 hover:bg-red-500/10 transition-all text-zinc-500"
+                className="ml-1 p-0.5 rounded opacity-0 group-hover:opacity-100 hover:text-red-500 hover:bg-red-50 transition-all text-gray-400"
                 onClick={(e) => { e.stopPropagation(); closeEditorTab(tab.id); }}
               >
                 <svg width="10" height="10" viewBox="0 0 12 12" fill="none"><path d="M3 3L9 9M9 3L3 9" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" /></svg>
@@ -292,29 +292,29 @@ export function CodeEditorPanel() {
             value={activeTab.content}
             onChange={handleChange}
             onMount={handleMount}
-            theme="arduino-dark"
+            theme="arduino-light"
             options={{ fontSize: 14, lineHeight: 22 }}
           />
         ) : (
-          <div className="flex items-center justify-center h-full text-zinc-600">
+          <div className="flex items-center justify-center h-full text-gray-400">
             <div className="text-center">
               <p className="text-sm">No file open</p>
-              <p className="text-xs text-zinc-700 mt-1">Open the Code tab from above or create a new sketch</p>
+              <p className="text-xs text-gray-300 mt-1">Open the Code tab from above or create a new sketch</p>
             </div>
           </div>
         )}
       </div>
 
       {/* Status bar */}
-      <div className="flex items-center justify-between px-3 py-1 bg-zinc-900 border-t border-zinc-800 text-[11px] text-zinc-500 select-none shrink-0">
+      <div className="flex items-center justify-between px-3 py-1 bg-[#F8F9FA] border-t border-[#E9ECEF] text-[11px] text-gray-500 select-none shrink-0">
         <div className="flex items-center gap-2">
-          <span className="text-emerald-400 font-medium">Arduino</span>
-          <span className="text-zinc-700">|</span>
+          <span className="text-[#4361EE] font-medium">Arduino</span>
+          <span className="text-gray-300">|</span>
           <span>UTF-8</span>
         </div>
         <div className="flex items-center gap-2">
           <span>Ln {cursorLine}, Col {cursorCol}</span>
-          <span className="text-zinc-700">|</span>
+          <span className="text-gray-300">|</span>
           <span>{activeTab?.content.length ?? 0} chars</span>
         </div>
       </div>

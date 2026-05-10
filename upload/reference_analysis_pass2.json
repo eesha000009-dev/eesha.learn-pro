@@ -1,0 +1,28 @@
+{
+  "choices": [
+    {
+      "finish_reason": "stop",
+      "index": 0,
+      "message": {
+        "content": "Here are the exact specifications for the CircuitDesign tool UI based on the provided screenshot:\n\n**A) HEADER:**\n- Background: #F8F9FA (light gray, not pure white)\n- Logo text \"CircuitDesign\": #4361EE (blue)\n- Elements (left to right):\n  1. Hamburger menu icon (three horizontal lines)\n  2. \"File\" menu\n  3. \"Edit\" menu\n  4. \"Help\" menu\n  5. Project title: \"Measure Light Intensity With P...\" (truncated)\n  6. Tabs: Design, Code, Simulate, Upload\n  7. \"CirkIt AI\" button (blue background)\n  8. \"Export\" dropdown\n  9. \"Share\" button (blue background)\n  10. User profile: \"austin@cirkitdesign.com\" with green avatar\n  11. Simulation controls: stop (square), pause (two vertical bars), settings (gear)\n  12. \"Build Simulatable Part\" button (blue background)\n  13. Fullscreen icon\n  14. Search icon\n  15. Zoom controls (not fully visible)\n\n**B) Project Title:**\n- Full visible text: \"Measure Light Intensity With P...\"\n- Font weight: Medium (500)\n\n**C) TABS:**\n- Active tab: \"Simulate\" (has checkmark)\n- Visual indicator: Bottom border (blue line) and checkmark icon\n- Icons:\n  - Design: Pencil/edit icon\n  - Code: Code brackets icon\n  - Simulate: Checkmark icon\n  - Upload: Upload arrow icon\n\n**D) SIMULATION TOOLBAR:**\n- Buttons (left to right):\n  1. Stop (square icon)\n  2. Pause (two vertical bars)\n  3. Settings (gear icon)\n  4. \"Build Simulatable Part\" (blue button with wrench icon)\n  5. Fullscreen (expand icon)\n  6. Search (magnifying glass)\n  7. Zoom in/out (not fully visible)\n\n**E) CANVAS CIRCUIT:**\n- Arduino board:\n  - PCB color: #2563EB (blue)\n  - Text: \"UNO\" is visible on the board\n  - USB port: Top-left corner\n\n**F) LDR SENSOR:**\n- Component: Black rectangular board with white text\n- Pins: Red and black (or similar contrasting colors)\n- No visible wavy/zigzag pattern\n\n**G) LCD:**\n- Display text: \"Room Dark\" and \"Lux 1.03\"\n- Screen color: #22C55E (green)\n- Style: 16x2 LCD with green PCB visible on back\n\n**H) WIRES:**\n- Colors and connections:\n  1. Red: LDR to Arduino\n  2. Blue: LDR to Arduino\n  3. Black: LDR to Arduino\n  4. Red: Arduino to LCD\n  5. Blue: Arduino to LCD\n  6. Black: Arduino to LCD\n  7. Red: Arduino power\n  8. Black: Arduino ground\n- Routing: Manhattan style (90-degree bends)\n\n**I) SIDEBAR:**\n- No visible sidebar panels in the screenshot\n- No properties or component library panels visible\n\n**J) WINDOW FRAME:**\n- Rounded corners (subtle)\n- Shadow: Very light (almost imperceptible)\n- Title bar: Standard with menu items\n\nAll hex values are approximate based on visual analysis of the screenshot.",
+        "role": "assistant"
+      }
+    }
+  ],
+  "created": 1778427508,
+  "id": "202605102338058b761b691a12493b",
+  "model": "glm-4.6v",
+  "object": "chat.completion",
+  "request_id": "202605102338058b761b691a12493b",
+  "usage": {
+    "completion_tokens": 769,
+    "completion_tokens_details": {
+      "reasoning_tokens": 0
+    },
+    "prompt_tokens": 1272,
+    "prompt_tokens_details": {
+      "cached_tokens": 4
+    },
+    "total_tokens": 2041
+  }
+}

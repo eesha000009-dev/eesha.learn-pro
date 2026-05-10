@@ -40,12 +40,25 @@ export interface PlacedComponent {
   state?: Record<string, any>;
 }
 
+// ─── Wire Types ─────────────────────────────────────────────────────────────
+
+export interface WireEndpoint {
+  componentId: string;
+  pinId: string;
+  x: number;  // cached absolute position
+  y: number;
+}
+
 export interface Wire {
   id: string;
+  start: WireEndpoint;
+  end: WireEndpoint;
+  waypoints: { x: number; y: number }[];
+  color: string;
+  signalType?: 'power-vcc' | 'power-gnd' | 'analog' | 'digital' | 'pwm' | 'i2c' | 'spi' | 'usart';
+  // Backward compatibility with diagram.ts
   from: { componentId: string; pinId: string };
   to: { componentId: string; pinId: string };
-  color: string;
-  points?: Vec2[]; // manual routing points
 }
 
 export interface WireDraft {
@@ -55,6 +68,8 @@ export interface WireDraft {
   startY: number;
   currentX: number;
   currentY: number;
+  waypoints: { x: number; y: number }[];
+  color: string;
 }
 
 // ─── Workspace State ────────────────────────────────────────────────────────
