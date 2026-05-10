@@ -1,110 +1,243 @@
 import { create } from 'zustand';
 import type {
   SimulationState,
-  ViewMode,
-  CircuitComponent,
-  PinState,
-  LogEntry,
-  EditorTab,
-  SubcircuitGroup,
+  ActiveTab,
+  WorkspaceState,
+  PlacedComponent,
   Wire,
-  ActiveWire,
+  WireDraft,
+  EditorTab,
+  Vec2,
+  ComponentDef,
 } from '@/types';
+import { BOARD_DEFINITIONS, COMPONENT_DEFINITIONS } from '@/lib/component-defs';
+import type { Pin } from '@/types';
 
 interface SimulatorStore {
-  // Simulation
+  // ─── Active Tab ──────────────────────────────────────────────────────────
+  activeTab: ActiveTab;
+  setActiveTab: (tab: ActiveTab) => void;
+
+  // ─── Workspace ───────────────────────────────────────────────────────────
+  workspace: WorkspaceState;
+  setPanOffset: (offset: Vec2) => void;
+  setZoom: (zoom: number) => void;
+  toggleGrid: () => void;
+
+  // ─── Components on Canvas ────────────────────────────────────────────────
+  components: PlacedComponent[];
+  addComponent: (defId: string, x?: number, y?: number) => string;
+  removeComponent: (id: string) => void;
+  moveComponent: (id: string, x: number, y: number) => void;
+  rotateComponent: (id: string) => void;
+  updateComponentState: (id: string, state: Record<string, any>) => void;
+  setComponentPinValue: (componentId: string, pinId: string, value: number) => void;
+  clearComponents: () => void;
+
+  // ─── Selection ───────────────────────────────────────────────────────────
+  selectedComponentId: string | null;
+  setSelectedComponent: (id: string | null) => void;
+  selectedWireId: string | null;
+  setSelectedWire: (id: string | null) => void;
+
+  // ─── Wiring ──────────────────────────────────────────────────────────────
+  wires: Wire[];
+  wireDraft: WireDraft | null;
+  wireColor: string;
+  addWire: (from: { componentId: string; pinId: string }, to: { componentId: string; pinId: string }) => void;
+  removeWire: (id: string) => void;
+  startWireDraft: (componentId: string, pinId: string, startX: number, startY: number) => void;
+  updateWireDraft: (x: number, y: number) => void;
+  cancelWireDraft: () => void;
+  finishWireDraft: (componentId: string, pinId: string) => void;
+  setWireColor: (color: string) => void;
+
+  // ─── Simulation ──────────────────────────────────────────────────────────
   simulation: SimulationState;
   setRunning: (running: boolean) => void;
+  setPaused: (paused: boolean) => void;
   setSpeed: (speed: number) => void;
+  tickElapsedTime: () => void;
   addSerialOutput: (line: string) => void;
   clearSerialOutput: () => void;
   addError: (error: string) => void;
   clearErrors: () => void;
-  updatePinState: (componentId: string, pinStates: PinState[]) => void;
   resetSimulation: () => void;
 
-  // View
-  viewMode: ViewMode;
-  setViewMode: (mode: ViewMode) => void;
-  showGrid: boolean;
-  toggleGrid: () => void;
-  zoom: number;
-  setZoom: (zoom: number) => void;
-
-  // Components on the canvas
-  components: CircuitComponent[];
-  addComponent: (component: CircuitComponent) => void;
-  removeComponent: (id: string) => void;
-  updateComponent: (id: string, updates: Partial<CircuitComponent>) => void;
-  clearComponents: () => void;
-
-  // Selected component
-  selectedComponentId: string | null;
-  setSelectedComponent: (id: string | null) => void;
-
-  // Code Editor
+  // ─── Code Editor ─────────────────────────────────────────────────────────
   editorTabs: EditorTab[];
-  activeTabId: string | null;
-  addTab: (tab: EditorTab) => void;
-  updateTabContent: (id: string, content: string) => void;
-  closeTab: (id: string) => void;
-  setActiveTab: (id: string) => void;
+  activeEditorTabId: string | null;
+  addEditorTab: (tab: EditorTab) => void;
+  updateEditorTabContent: (id: string, content: string) => void;
+  closeEditorTab: (id: string) => void;
+  setActiveEditorTab: (id: string) => void;
 
-  // Board (now supports any registry board ID)
-  boardType: string;
-  setBoardType: (board: string) => void;
+  // ─── Component Palette ───────────────────────────────────────────────────
+  showPalette: boolean;
+  togglePalette: () => void;
 
-  // Registry Boards
-  installedBoardIds: Set<string>;
-  installBoard: (id: string) => void;
-  uninstallBoard: (id: string) => void;
-
-  // Subcircuit Groups
-  subcircuitGroups: SubcircuitGroup[];
-  addGroup: (group: SubcircuitGroup) => void;
-  removeGroup: (id: string) => void;
-  renameGroup: (id: string, name: string) => void;
-  toggleGroupCollapse: (id: string) => void;
-  addComponentToGroup: (groupId: string, componentId: string) => void;
-  removeComponentFromGroup: (groupId: string, componentId: string) => void;
-
-  // Logs
-  logs: LogEntry[];
-  addLog: (entry: LogEntry) => void;
-  clearLogs: () => void;
-
-  // Wiring
-  wires: Wire[];
-  activeWire: ActiveWire | null;
-  selectedWireId: string | null;
-  addWire: (wire: Wire) => void;
-  removeWire: (wireId: string) => void;
-  setActiveWire: (wire: ActiveWire | null) => void;
-  setSelectedWire: (wireId: string | null) => void;
-  clearWires: () => void;
-
-  // Console panel
-  showConsole: boolean;
-  toggleConsole: () => void;
-  showComponentPanel: boolean;
-  toggleComponentPanel: () => void;
+  // ─── Serial Monitor ──────────────────────────────────────────────────────
+  showSerialMonitor: boolean;
+  toggleSerialMonitor: () => void;
 }
 
 const defaultSimulation: SimulationState = {
   isRunning: false,
+  isPaused: false,
   speed: 1,
   elapsedTime: 0,
-  pinStates: {},
   serialOutput: [],
   errors: [],
+  pinStates: {},
 };
 
-export const useSimulatorStore = create<SimulatorStore>((set) => ({
+const DEFAULT_SKETCH_CODE = `// Eesha Learn - Arduino Sketch
+// LED Blink on Pin 13
+
+void setup() {
+  pinMode(13, OUTPUT);
+  Serial.begin(9600);
+  Serial.println("Eesha Learn - LED Blink");
+}
+
+void loop() {
+  digitalWrite(13, HIGH);
+  Serial.println("LED ON");
+  delay(1000);
+
+  digitalWrite(13, LOW);
+  Serial.println("LED OFF");
+  delay(1000);
+}
+`;
+
+export const useSimulatorStore = create<SimulatorStore>((set, get) => ({
+  activeTab: 'design',
+  setActiveTab: (tab) => set({ activeTab: tab }),
+
+  workspace: {
+    panOffset: { x: 0, y: 0 },
+    zoom: 1,
+    gridSize: 20,
+    showGrid: true,
+  },
+  setPanOffset: (offset) =>
+    set((s) => ({ workspace: { ...s.workspace, panOffset: offset } })),
+  setZoom: (zoom) =>
+    set((s) => ({ workspace: { ...s.workspace, zoom: Math.max(0.25, Math.min(3, zoom)) } })),
+  toggleGrid: () =>
+    set((s) => ({ workspace: { ...s.workspace, showGrid: !s.workspace.showGrid } })),
+
+  components: [],
+  addComponent: (defId, x, y) => {
+    const def = COMPONENT_DEFINITIONS.find((d) => d.type === defId);
+    if (!def) return '';
+    const id = `${defId}-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+    const comp: PlacedComponent = {
+      id,
+      defId: def.type,
+      x: x ?? def.defaultX,
+      y: y ?? def.defaultY,
+      rotation: 0,
+      pins: def.pins.map((p) => ({ ...p })),
+      state: def.type === 'arduino-uno' ? { ledOn: false, powerLed: true } : {},
+    };
+    set((s) => ({ components: [...s.components, comp] }));
+    return id;
+  },
+  removeComponent: (id) =>
+    set((s) => ({
+      components: s.components.filter((c) => c.id !== id),
+      wires: s.wires.filter((w) => w.from.componentId !== id && w.to.componentId !== id),
+    })),
+  moveComponent: (id, x, y) =>
+    set((s) => ({
+      components: s.components.map((c) => (c.id === id ? { ...c, x, y } : c)),
+    })),
+  rotateComponent: (id) =>
+    set((s) => ({
+      components: s.components.map((c) =>
+        c.id === id ? { ...c, rotation: (c.rotation + 90) % 360 } : c
+      ),
+    })),
+  updateComponentState: (id, state) =>
+    set((s) => ({
+      components: s.components.map((c) =>
+        c.id === id ? { ...c, state: { ...c.state, ...state } } : c
+      ),
+    })),
+  setComponentPinValue: (componentId, pinId, value) =>
+    set((s) => ({
+      components: s.components.map((c) => {
+        if (c.id !== componentId) return c;
+        return {
+          ...c,
+          pins: c.pins.map((p) => (p.id === pinId ? { ...p, value } : p)),
+        };
+      }),
+      simulation: {
+        ...s.simulation,
+        pinStates: {
+          ...s.simulation.pinStates,
+          [componentId]: {
+            ...(s.simulation.pinStates[componentId] || {}),
+            [pinId]: value,
+          },
+        },
+      },
+    })),
+  clearComponents: () => set({ components: [], wires: [] }),
+
+  selectedComponentId: null,
+  setSelectedComponent: (id) => set({ selectedComponentId: id }),
+  selectedWireId: null,
+  setSelectedWire: (id) => set({ selectedWireId: id }),
+
+  wires: [],
+  wireDraft: null,
+  wireColor: '#ef4444',
+  addWire: (from, to) => {
+    const { wireColor, wires } = get();
+    const id = `wire-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+    set({ wires: [...wires, { id, from, to, color: wireColor }] });
+  },
+  removeWire: (id) =>
+    set((s) => ({
+      wires: s.wires.filter((w) => w.id !== id),
+      selectedWireId: s.selectedWireId === id ? null : s.selectedWireId,
+    })),
+  startWireDraft: (componentId, pinId, startX, startY) =>
+    set({
+      wireDraft: { fromComponentId: componentId, fromPinId: pinId, startX, startY, currentX: startX, currentY: startY },
+    }),
+  updateWireDraft: (x, y) =>
+    set((s) =>
+      s.wireDraft ? { wireDraft: { ...s.wireDraft, currentX: x, currentY: y } } : {}
+    ),
+  cancelWireDraft: () => set({ wireDraft: null }),
+  finishWireDraft: (componentId, pinId) => {
+    const { wireDraft, addWire } = get();
+    if (wireDraft) {
+      addWire(
+        { componentId: wireDraft.fromComponentId, pinId: wireDraft.fromPinId },
+        { componentId, pinId }
+      );
+      set({ wireDraft: null });
+    }
+  },
+  setWireColor: (color) => set({ wireColor: color }),
+
   simulation: { ...defaultSimulation },
   setRunning: (running) =>
     set((s) => ({ simulation: { ...s.simulation, isRunning: running } })),
+  setPaused: (paused) =>
+    set((s) => ({ simulation: { ...s.simulation, isPaused: paused } })),
   setSpeed: (speed) =>
     set((s) => ({ simulation: { ...s.simulation, speed } })),
+  tickElapsedTime: () =>
+    set((s) => ({
+      simulation: { ...s.simulation, elapsedTime: s.simulation.elapsedTime + 0.05 },
+    })),
   addSerialOutput: (line) =>
     set((s) => ({
       simulation: {
@@ -116,146 +249,48 @@ export const useSimulatorStore = create<SimulatorStore>((set) => ({
     set((s) => ({ simulation: { ...s.simulation, serialOutput: [] } })),
   addError: (error) =>
     set((s) => ({
-      simulation: {
-        ...s.simulation,
-        errors: [...s.simulation.errors, error],
-      },
+      simulation: { ...s.simulation, errors: [...s.simulation.errors, error] },
     })),
   clearErrors: () =>
     set((s) => ({ simulation: { ...s.simulation, errors: [] } })),
-  updatePinState: (componentId, pinStates) =>
-    set((s) => ({
-      simulation: {
-        ...s.simulation,
-        pinStates: { ...s.simulation.pinStates, [componentId]: pinStates },
-      },
-    })),
-  resetSimulation: () => set({ simulation: { ...defaultSimulation } }),
-
-  viewMode: 'breadboard',
-  setViewMode: (mode) => set({ viewMode: mode }),
-  showGrid: true,
-  toggleGrid: () => set((s) => ({ showGrid: !s.showGrid })),
-  zoom: 1,
-  setZoom: (zoom) => set({ zoom: Math.max(0.25, Math.min(3, zoom)) }),
-
-  components: [],
-  addComponent: (component) =>
-    set((s) => ({ components: [...s.components, component] })),
-  removeComponent: (id) =>
-    set((s) => ({ components: s.components.filter((c) => c.id !== id) })),
-  updateComponent: (id, updates) =>
-    set((s) => ({
-      components: s.components.map((c) =>
-        c.id === id ? { ...c, ...updates } : c
-      ),
-    })),
-  clearComponents: () => set({ components: [] }),
-
-  selectedComponentId: null,
-  setSelectedComponent: (id) => set({ selectedComponentId: id }),
+  resetSimulation: () => {
+    set({
+      simulation: { ...defaultSimulation },
+      components: get().components.map((c) => ({
+        ...c,
+        pins: c.pins.map((p) => ({ ...p, value: 0 })),
+        state: c.defId === 'arduino-uno' ? { ledOn: false, powerLed: true } : c.state,
+      })),
+    });
+  },
 
   editorTabs: [],
-  activeTabId: null,
-  addTab: (tab) =>
+  activeEditorTabId: null,
+  addEditorTab: (tab) =>
     set((s) => {
       if (s.editorTabs.find((t) => t.id === tab.id)) return s;
-      return {
-        editorTabs: [...s.editorTabs, tab],
-        activeTabId: tab.id,
-      };
+      return { editorTabs: [...s.editorTabs, tab], activeEditorTabId: tab.id };
     }),
-  updateTabContent: (id, content) =>
+  updateEditorTabContent: (id, content) =>
     set((s) => ({
       editorTabs: s.editorTabs.map((t) =>
         t.id === id ? { ...t, content, modified: true } : t
       ),
     })),
-  closeTab: (id) =>
+  closeEditorTab: (id) =>
     set((s) => {
       const idx = s.editorTabs.findIndex((t) => t.id === id);
       const newTabs = s.editorTabs.filter((t) => t.id !== id);
       const newActive =
-        s.activeTabId === id
+        s.activeEditorTabId === id
           ? newTabs[Math.min(idx, newTabs.length - 1)]?.id ?? null
-          : s.activeTabId;
-      return { editorTabs: newTabs, activeTabId: newActive };
+          : s.activeEditorTabId;
+      return { editorTabs: newTabs, activeEditorTabId: newActive };
     }),
-  setActiveTab: (id) => set({ activeTabId: id }),
+  setActiveEditorTab: (id) => set({ activeEditorTabId: id }),
 
-  boardType: 'arduino-uno',
-  setBoardType: (board) => set({ boardType: board }),
-
-  installedBoardIds: new Set(['arduino-uno', 'arduino-nano']),
-  installBoard: (id) =>
-    set((s) => {
-      const next = new Set(s.installedBoardIds);
-      next.add(id);
-      return { installedBoardIds: next };
-    }),
-  uninstallBoard: (id) =>
-    set((s) => {
-      const next = new Set(s.installedBoardIds);
-      next.delete(id);
-      return { installedBoardIds: next };
-    }),
-
-  subcircuitGroups: [],
-  addGroup: (group) =>
-    set((s) => ({ subcircuitGroups: [...s.subcircuitGroups, group] })),
-  removeGroup: (id) =>
-    set((s) => ({ subcircuitGroups: s.subcircuitGroups.filter((g) => g.id !== id) })),
-  renameGroup: (id, name) =>
-    set((s) => ({
-      subcircuitGroups: s.subcircuitGroups.map((g) =>
-        g.id === id ? { ...g, name } : g
-      ),
-    })),
-  toggleGroupCollapse: (id) =>
-    set((s) => ({
-      subcircuitGroups: s.subcircuitGroups.map((g) =>
-        g.id === id ? { ...g, isCollapsed: !g.isCollapsed } : g
-      ),
-    })),
-  addComponentToGroup: (groupId, componentId) =>
-    set((s) => ({
-      subcircuitGroups: s.subcircuitGroups.map((g) =>
-        g.id === groupId
-          ? { ...g, componentIds: [...g.componentIds, componentId] }
-          : g
-      ),
-    })),
-  removeComponentFromGroup: (groupId, componentId) =>
-    set((s) => ({
-      subcircuitGroups: s.subcircuitGroups.map((g) =>
-        g.id === groupId
-          ? { ...g, componentIds: g.componentIds.filter((cId) => cId !== componentId) }
-          : g
-      ),
-    })),
-
-  logs: [],
-  addLog: (entry) =>
-    set((s) => ({ logs: [...s.logs.slice(-200), entry] })),
-  clearLogs: () => set({ logs: [] }),
-
-  wires: [],
-  activeWire: null,
-  selectedWireId: null,
-  addWire: (wire) =>
-    set((s) => ({ wires: [...s.wires, wire] })),
-  removeWire: (wireId) =>
-    set((s) => ({
-      wires: s.wires.filter((w) => w.id !== wireId),
-      selectedWireId: s.selectedWireId === wireId ? null : s.selectedWireId,
-    })),
-  setActiveWire: (wire) => set({ activeWire: wire }),
-  setSelectedWire: (wireId) => set({ selectedWireId: wireId }),
-  clearWires: () => set({ wires: [], activeWire: null, selectedWireId: null }),
-
-  showConsole: true,
-  toggleConsole: () => set((s) => ({ showConsole: !s.showConsole })),
-  showComponentPanel: true,
-  toggleComponentPanel: () =>
-    set((s) => ({ showComponentPanel: !s.showComponentPanel })),
+  showPalette: true,
+  togglePalette: () => set((s) => ({ showPalette: !s.showPalette })),
+  showSerialMonitor: true,
+  toggleSerialMonitor: () => set((s) => ({ showSerialMonitor: !s.showSerialMonitor })),
 }));

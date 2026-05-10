@@ -13,25 +13,18 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: 'Eesha Learn — Premium Circuit Simulator Platform',
+  title: 'Eesha Learn — Arduino Simulator',
   description:
-    'Design, simulate, and learn electronics with Eesha Learn. Multi-architecture simulation with AVR8js, RP2040js, RISC-V, and ESP32 support. Built on tscircuit + arduino-cli.',
+    'Design, simulate, and learn electronics with Eesha Learn. Wokwi-like Arduino simulator with avr8js, realistic board visuals, and pin-to-pin wire connections.',
   keywords: [
     'Eesha Learn',
+    'Arduino simulator',
+    'Wokwi alternative',
     'circuit simulator',
     'Arduino',
-    'Raspberry Pi Pico',
-    'ESP32',
-    'RP2040',
-    'RISC-V',
-    'electronics',
-    'tscircuit',
+    'electronics learning',
     'avr8js',
-    'rp2040js',
-    'rvemu',
     'breadboard',
-    'schematic',
-    'PCB',
     'Monaco Editor',
   ],
   authors: [{ name: 'Eesha Learn Team' }],

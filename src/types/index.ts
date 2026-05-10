@@ -1,189 +1,103 @@
-export interface CircuitComponent {
-  id: string;
-  type: ComponentType;
-  name: string;
+// ─── Core Canvas Types ─────────────────────────────────────────────────────
+
+export interface Vec2 {
   x: number;
   y: number;
-  rotation: number;
-  pins: PinState[];
-  props?: Record<string, any>;
-  groupId?: string;
+}
+
+export interface Pin {
+  id: string;
+  label: string;
+  /** Local offset from component origin (top-left) */
+  offset: Vec2;
+  side: 'top' | 'bottom' | 'left' | 'right';
+  type: 'digital' | 'analog' | 'power' | 'ground' | 'pwm' | 'i2c' | 'spi' | 'uart';
+  value: number; // 0-5V or analog value
+  mode: 'input' | 'output' | 'bidirectional';
+}
+
+export interface ComponentDef {
+  type: string;
+  name: string;
+  category: 'board' | 'display' | 'sensor' | 'actuator' | 'passive' | 'communication' | 'power';
+  description: string;
+  width: number;
+  height: number;
+  pins: Pin[];
+  defaultX: number;
+  defaultY: number;
 }
 
 export interface PlacedComponent {
   id: string;
-  type: string;
-  name: string;
+  defId: string;
   x: number;
   y: number;
   rotation: number;
-  pins: {
-    id: string;
-    name: string;
-    x: number;
-    y: number;
-    side: string;
-    type: string;
-  }[];
+  pins: Pin[];
   props?: Record<string, any>;
+  /** For displays, etc - runtime state */
+  state?: Record<string, any>;
 }
 
 export interface Wire {
   id: string;
+  from: { componentId: string; pinId: string };
+  to: { componentId: string; pinId: string };
+  color: string;
+  points?: Vec2[]; // manual routing points
+}
+
+export interface WireDraft {
   fromComponentId: string;
   fromPinId: string;
-  toComponentId: string;
-  toPinId: string;
-  color: string;
-  route: { x: number; y: number }[];
-  isPowered: boolean;
-  voltage: number;
+  startX: number;
+  startY: number;
+  currentX: number;
+  currentY: number;
 }
 
-export interface WiringState {
-  wires: Wire[];
-  activeWire: {
-    fromComponentId: string;
-    fromPinId: string;
-    fromX: number;
-    fromY: number;
-    toX: number;
-    toY: number;
-  } | null;
-  selectedWireId: string | null;
+// ─── Workspace State ────────────────────────────────────────────────────────
+
+export type ActiveTab = 'design' | 'code' | 'simulate';
+
+export interface WorkspaceState {
+  panOffset: Vec2;
+  zoom: number;
+  gridSize: number;
+  showGrid: boolean;
 }
 
-export type ComponentType =
-  | 'resistor' | 'led' | 'capacitor' | 'button' | 'motor' | 'servo'
-  | 'lcd' | 'buzzer' | 'photoresistor' | 'potentiometer' | 'arduino_uno'
-  | 'breadboard' | 'wire' | 'battery' | 'rgb_led' | 'seven_segment'
-  | 'relay' | 'transistor' | 'diode' | 'esp32' | 'raspberry_pi_pico'
-  | 'stm32' | 'attiny85' | 'custom_board' | 'sensor_dht22' | 'sensor_ultrasonic'
-  | 'matrix_keypad' | 'stepper_motor' | 'shift_register' | 'i2c_oled';
-
-export interface PinState {
-  pinNumber: number;
-  pinName: string;
-  value: 'high' | 'low' | 'floating';
-  voltage?: number;
-  current?: number;
-  /** Absolute x position on canvas */
-  x?: number;
-  /** Absolute y position on canvas */
-  y?: number;
-  /** Which side of the component this pin faces */
-  side?: string;
-}
+// ─── Simulation ────────────────────────────────────────────────────────────
 
 export interface SimulationState {
   isRunning: boolean;
+  isPaused: boolean;
   speed: number;
   elapsedTime: number;
-  pinStates: Record<string, PinState[]>;
   serialOutput: string[];
   errors: string[];
+  pinStates: Record<string, Record<string, number>>; // componentId -> pinId -> value
 }
 
-export interface CircuitTemplate {
-  id: string;
-  name: string;
-  description: string;
-  category: 'beginner' | 'intermediate' | 'advanced';
-  difficulty: 1 | 2 | 3 | 4 | 5;
-  components: CircuitComponent[];
-  code: string;
-  circuitCode: string;
-  thumbnail?: string;
-  tags: string[];
-  compatibleBoards: string[];
-}
-
-export interface BoardType {
-  id: string;
-  name: string;
-  description: string;
-  pins: number;
-  voltage: number;
-}
-
-// ==================== REGISTRY TYPES ====================
-
-export interface RegistryBoard {
-  id: string;
-  package: string;
-  name: string;
-  description: string;
-  author: string;
-  version: string;
-  license: 'MIT' | 'BSD-3' | 'Apache-2.0' | 'GPL-3.0';
-  category: 'microcontroller' | 'dev-board' | 'shield' | 'hat' | 'breakout' | 'sensor-module' | 'display-module' | 'custom';
-  formFactor: 'arduino-shield' | 'rpi-hat' | 'custom' | 'breadboard-friendly' | ' Feather' | 'qwiic' | 'stm32-nucleo';
-  dimensions: { width: string; height: string };
-  pinCount: { digital: number; analog: number; pwm: number; i2c: number; spi: number; uart: number };
-  voltage: number;
-  mcu?: string;
-  architecture?: 'avr' | 'arm-cortex-m0' | 'arm-cortex-m3' | 'arm-cortex-m4' | 'risc-v' | 'xtensa';
-  installed: boolean;
-  tags: string[];
-  compatibleTemplates: string[];
-  registryUrl?: string;
-  tsciCommand: string;
-  thumbnailColor: string;
-}
-
-export interface BoardTemplate {
-  id: 'arduino-shield' | 'rpi-hat' | 'custom' | 'feather' | 'qwiic' | 'stm32-nucleo';
-  name: string;
-  description: string;
-  baseWidth: string;
-  baseHeight: string;
-  defaultMountingHoles: boolean;
-  defaultHeaders: boolean;
-  defaultUsbConnector: boolean;
-  defaultPowerIndicator: boolean;
-}
-
-export interface SubcircuitGroup {
-  id: string;
-  name: string;
-  description: string;
-  color: string;
-  componentIds: string[];
-  isCollapsed: boolean;
-}
-
-export interface ImportSource {
-  type: 'jlcpcb' | 'kicad' | 'tscircuit-registry' | 'snapeda' | 'custom';
-  name: string;
-  description: string;
-  formats: string[];
-  icon: string;
-}
+// ─── Editor ────────────────────────────────────────────────────────────────
 
 export interface EditorTab {
   id: string;
   name: string;
-  language: 'c' | 'cpp' | 'python' | 'circuit' | 'kicad' | 'json';
+  language: 'arduino' | 'cpp' | 'h' | 'json';
   content: string;
   modified: boolean;
 }
 
-export type ViewMode = 'schematic' | 'pcb' | 'breadboard' | 'split';
+// ─── Board Definitions ─────────────────────────────────────────────────────
 
-export type PanelPosition = 'left' | 'right' | 'bottom';
-
-export interface ActiveWire {
-  fromComponentId: string;
-  fromPinId: string;
-  fromX: number;
-  fromY: number;
-  toX: number;
-  toY: number;
-}
-
-export interface LogEntry {
-  timestamp: number;
-  level: 'info' | 'warn' | 'error' | 'debug';
-  message: string;
-  source?: string;
+export interface BoardPinout {
+  id: string;
+  name: string;
+  mcu: string;
+  architecture: 'avr' | 'arm' | 'esp32' | 'riscv';
+  pins: Pin[];
+  width: number;
+  height: number;
 }
