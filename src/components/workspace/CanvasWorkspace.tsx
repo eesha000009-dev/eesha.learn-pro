@@ -168,7 +168,7 @@ export function CanvasWorkspace() {
   }, [setSelectedComponent]);
 
   return (
-    <div className="flex-1 relative overflow-hidden bg-[#1a1a2e]">
+    <div className="flex-1 relative overflow-hidden bg-[#0d1117]">
       {/* Grid background */}
       <div
         className="absolute inset-0 opacity-10"
