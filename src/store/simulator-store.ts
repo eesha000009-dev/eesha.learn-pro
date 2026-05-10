@@ -7,6 +7,8 @@ import type {
   LogEntry,
   EditorTab,
   SubcircuitGroup,
+  Wire,
+  ActiveWire,
 } from '@/types';
 
 interface SimulatorStore {
@@ -70,6 +72,16 @@ interface SimulatorStore {
   logs: LogEntry[];
   addLog: (entry: LogEntry) => void;
   clearLogs: () => void;
+
+  // Wiring
+  wires: Wire[];
+  activeWire: ActiveWire | null;
+  selectedWireId: string | null;
+  addWire: (wire: Wire) => void;
+  removeWire: (wireId: string) => void;
+  setActiveWire: (wire: ActiveWire | null) => void;
+  setSelectedWire: (wireId: string | null) => void;
+  clearWires: () => void;
 
   // Console panel
   showConsole: boolean;
@@ -226,6 +238,20 @@ export const useSimulatorStore = create<SimulatorStore>((set) => ({
   addLog: (entry) =>
     set((s) => ({ logs: [...s.logs.slice(-200), entry] })),
   clearLogs: () => set({ logs: [] }),
+
+  wires: [],
+  activeWire: null,
+  selectedWireId: null,
+  addWire: (wire) =>
+    set((s) => ({ wires: [...s.wires, wire] })),
+  removeWire: (wireId) =>
+    set((s) => ({
+      wires: s.wires.filter((w) => w.id !== wireId),
+      selectedWireId: s.selectedWireId === wireId ? null : s.selectedWireId,
+    })),
+  setActiveWire: (wire) => set({ activeWire: wire }),
+  setSelectedWire: (wireId) => set({ selectedWireId: wireId }),
+  clearWires: () => set({ wires: [], activeWire: null, selectedWireId: null }),
 
   showConsole: true,
   toggleConsole: () => set((s) => ({ showConsole: !s.showConsole })),

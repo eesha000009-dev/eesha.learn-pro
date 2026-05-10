@@ -10,6 +10,49 @@ export interface CircuitComponent {
   groupId?: string;
 }
 
+export interface PlacedComponent {
+  id: string;
+  type: string;
+  name: string;
+  x: number;
+  y: number;
+  rotation: number;
+  pins: {
+    id: string;
+    name: string;
+    x: number;
+    y: number;
+    side: string;
+    type: string;
+  }[];
+  props?: Record<string, any>;
+}
+
+export interface Wire {
+  id: string;
+  fromComponentId: string;
+  fromPinId: string;
+  toComponentId: string;
+  toPinId: string;
+  color: string;
+  route: { x: number; y: number }[];
+  isPowered: boolean;
+  voltage: number;
+}
+
+export interface WiringState {
+  wires: Wire[];
+  activeWire: {
+    fromComponentId: string;
+    fromPinId: string;
+    fromX: number;
+    fromY: number;
+    toX: number;
+    toY: number;
+  } | null;
+  selectedWireId: string | null;
+}
+
 export type ComponentType =
   | 'resistor' | 'led' | 'capacitor' | 'button' | 'motor' | 'servo'
   | 'lcd' | 'buzzer' | 'photoresistor' | 'potentiometer' | 'arduino_uno'
@@ -24,6 +67,12 @@ export interface PinState {
   value: 'high' | 'low' | 'floating';
   voltage?: number;
   current?: number;
+  /** Absolute x position on canvas */
+  x?: number;
+  /** Absolute y position on canvas */
+  y?: number;
+  /** Which side of the component this pin faces */
+  side?: string;
 }
 
 export interface SimulationState {
@@ -122,6 +171,15 @@ export interface EditorTab {
 export type ViewMode = 'schematic' | 'pcb' | 'breadboard' | 'split';
 
 export type PanelPosition = 'left' | 'right' | 'bottom';
+
+export interface ActiveWire {
+  fromComponentId: string;
+  fromPinId: string;
+  fromX: number;
+  fromY: number;
+  toX: number;
+  toY: number;
+}
 
 export interface LogEntry {
   timestamp: number;
