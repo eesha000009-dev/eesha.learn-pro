@@ -16,7 +16,7 @@ function showToast(msg: string) {
     el = document.createElement('div');
     el.id = 'toast-msg';
     el.style.cssText =
-      'position:fixed;bottom:56px;left:50%;transform:translateX(-50%) translateY(8px);background:#495057;color:#f8f9fa;padding:6px 16px;border-radius:8px;font-size:12px;z-index:999;opacity:0;transition:opacity .2s,transform .2s;pointer-events:none;border:1px solid #dee2e6;';
+      'position:fixed;bottom:56px;left:50%;transform:translateX(-50%) translateY(8px);background:#495057;color:#f8f9fa;padding:6px 16px;border-radius:8px;font-size:12px;z-index:999;opacity:0;transition:opacity .2s,transform .2s;pointer-events:none;border:1px solid #dee2e6;white-space:nowrap;';
     document.body.appendChild(el);
   }
   el.textContent = msg;
@@ -251,33 +251,33 @@ export default function HomePage() {
   return (
     <div className="flex flex-col h-screen bg-[#F8F9FA] overflow-hidden">
       {/* ═══════════════════════════════════════════════════════════════════
-          ROW 1 — MAIN HEADER (bg-[#F8F9FA], h-12, border-b border-[#E9ECEF])
+          ROW 1 — MAIN HEADER
           ═══════════════════════════════════════════════════════════════════ */}
-      <header className="flex items-center justify-between px-3 h-12 bg-[#F8F9FA] border-b border-[#E9ECEF] select-none shrink-0">
+      <header className="flex items-center justify-between px-2 sm:px-3 h-11 sm:h-12 bg-[#F8F9FA] border-b border-[#E9ECEF] select-none shrink-0 min-w-0">
         {/* ── Left group: Logo + Menus + Tabs ──────────────────────────── */}
-        <div className="flex items-center gap-3 min-w-0">
+        <div className="flex items-center gap-1.5 sm:gap-3 min-w-0 flex-shrink min-w-0">
           {/* Logo */}
-          <div className="flex items-center gap-1.5 shrink-0">
-            <div className="w-7 h-7 rounded-lg bg-[#4361EE]/10 flex items-center justify-center">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#4361EE" strokeWidth="2.5" strokeLinecap="round">
+          <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
+            <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-lg bg-[#4361EE]/10 flex items-center justify-center">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#4361EE" strokeWidth="2.5" strokeLinecap="round">
                 <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
               </svg>
             </div>
-            <span className="text-sm font-bold tracking-tight whitespace-nowrap">
+            <span className="text-sm font-bold tracking-tight whitespace-nowrap hidden sm:inline">
               <span className="text-[#4361EE]">Eesha</span>
               <span className="text-gray-800"> Learn</span>
             </span>
           </div>
 
-          {/* Divider */}
-          <div className="w-px h-5 bg-gray-300 mx-0.5 shrink-0" />
+          {/* Divider - hidden on mobile */}
+          <div className="w-px h-5 bg-gray-300 mx-0.5 shrink-0 hidden md:block" />
 
-          {/* Menu items: File, Edit, View, Help */}
-          <div className="flex items-center gap-0.5 shrink-0">
+          {/* Menu items: File, Edit, View, Help - hidden on small screens */}
+          <div className="items-center gap-0.5 shrink-0 hidden md:flex">
             {['File', 'Edit', 'View', 'Help'].map((item) => (
               <button
                 key={item}
-                className="px-2.5 py-1 text-sm text-[#495057] hover:text-gray-900 hover:bg-gray-100 rounded-md transition-all"
+                className="px-2 py-1 text-sm text-[#495057] hover:text-gray-900 hover:bg-gray-100 rounded-md transition-all"
                 onClick={() => showToast(`${item} menu coming soon`)}
               >
                 {item}
@@ -285,23 +285,36 @@ export default function HomePage() {
             ))}
           </div>
 
-          {/* Divider */}
-          <div className="w-px h-5 bg-gray-300 mx-0.5 shrink-0" />
+          {/* Mobile menu button */}
+          <button
+            className="md:hidden p-1.5 rounded-md text-gray-500 hover:bg-gray-100 transition-colors"
+            onClick={() => showToast('Menu coming soon')}
+            aria-label="Menu"
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+              <line x1="3" y1="6" x2="21" y2="6" />
+              <line x1="3" y1="12" x2="21" y2="12" />
+              <line x1="3" y1="18" x2="21" y2="18" />
+            </svg>
+          </button>
 
-          {/* Tab buttons: Design | Code | Simulate | Upload */}
-          <div className="flex items-center shrink-0">
+          {/* Divider - hidden on mobile */}
+          <div className="w-px h-5 bg-gray-300 mx-0.5 shrink-0 hidden sm:block" />
+
+          {/* Tab buttons: Design | Code | Simulate */}
+          <div className="flex items-center shrink-0 overflow-x-auto">
             {tabs.map((tab) => (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`flex items-center gap-1.5 px-3 py-3 text-sm font-medium transition-all border-b-2 relative ${
+                className={`flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-2.5 sm:py-3 text-xs sm:text-sm font-medium transition-all border-b-2 relative whitespace-nowrap ${
                   activeTab === tab.id
                     ? 'border-[#4361EE] text-gray-900 bg-white'
                     : 'border-transparent text-gray-500 hover:text-gray-700'
                 }`}
               >
                 {tab.icon}
-                {tab.label}
+                <span className="hidden xs:inline sm:inline">{tab.label}</span>
                 {tab.id === 'simulate' && simulation.isRunning && (
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
                     <polyline points="20 6 9 17 4 12" />
@@ -309,45 +322,35 @@ export default function HomePage() {
                 )}
               </button>
             ))}
-            {/* Upload tab */}
-            <button
-              className="flex items-center gap-1.5 px-3 py-3 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700 transition-all relative"
-              onClick={() => showToast('Upload coming soon')}
-            >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                <polyline points="17 8 12 3 7 8" />
-                <line x1="12" y1="3" x2="12" y2="15" />
-              </svg>
-              Upload
-            </button>
           </div>
         </div>
 
         {/* ── Right group: Actions ─────────────────────────────────────── */}
-        <div className="flex items-center gap-2 shrink-0">
+        <div className="flex items-center gap-1 sm:gap-2 shrink-0">
           {/* + Component AI button */}
           <button
             onClick={togglePalette}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-[#4361EE] text-white hover:bg-[#3a56d4] transition-colors"
+            className="flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1.5 rounded-lg text-xs font-medium bg-[#4361EE] text-white hover:bg-[#3a56d4] transition-colors"
           >
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
               <line x1="12" y1="5" x2="12" y2="19" />
               <line x1="5" y1="12" x2="19" y2="12" />
             </svg>
-            Component AI
+            <span className="hidden sm:inline">Components</span>
           </button>
 
           {/* Export dropdown */}
           <div className="relative" ref={exportMenuRef}>
             <button
               onClick={() => setShowExportMenu(!showExportMenu)}
-              className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium text-[#495057] hover:bg-gray-100 transition-colors"
+              className="flex items-center gap-1 px-1.5 sm:px-2.5 py-1.5 rounded-lg text-xs font-medium text-[#495057] hover:bg-gray-100 transition-colors"
             >
-              Export
-              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <polyline points="6 9 12 15 18 9" />
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                <polyline points="17 8 12 3 7 8" />
+                <line x1="12" y1="3" x2="12" y2="15" />
               </svg>
+              <span className="hidden md:inline">Export</span>
             </button>
             {showExportMenu && (
               <div className="absolute right-0 top-full mt-1 w-48 bg-white border border-[#E9ECEF] rounded-lg shadow-lg z-50 py-1 overflow-hidden">
@@ -383,7 +386,7 @@ export default function HomePage() {
                     <polyline points="17 8 12 3 7 8" />
                     <line x1="12" y1="3" x2="12" y2="15" />
                   </svg>
-                  Export diagram.json
+                  Export JSON
                 </button>
                 <label className="w-full flex items-center gap-2 px-3 py-2 text-xs text-gray-600 hover:bg-gray-50 transition-colors cursor-pointer">
                   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -391,7 +394,7 @@ export default function HomePage() {
                     <polyline points="7 10 12 15 17 10" />
                     <line x1="12" y1="15" x2="12" y2="3" />
                   </svg>
-                  Import diagram.json
+                  Import JSON
                   <input
                     type="file"
                     accept=".json"
@@ -403,10 +406,10 @@ export default function HomePage() {
             )}
           </div>
 
-          {/* Share button */}
+          {/* Share button - hidden on small screens */}
           <button
             onClick={() => showToast('Share link copied')}
-            className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium text-[#495057] hover:bg-gray-100 transition-colors"
+            className="hidden sm:flex items-center gap-1 px-2 py-1.5 rounded-lg text-xs font-medium text-[#495057] hover:bg-gray-100 transition-colors"
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <circle cx="18" cy="5" r="3" />
@@ -415,17 +418,17 @@ export default function HomePage() {
               <line x1="8.59" y1="13.51" x2="15.42" y2="17.49" />
               <line x1="15.41" y1="6.51" x2="8.59" y2="10.49" />
             </svg>
-            Share
+            <span className="hidden md:inline">Share</span>
           </button>
         </div>
       </header>
 
       {/* ═══════════════════════════════════════════════════════════════════
-          ROW 2 — SECONDARY TOOLBAR (bg-[#F8F9FA], h-10, border-b)
+          ROW 2 — SECONDARY TOOLBAR
           ═══════════════════════════════════════════════════════════════════ */}
-      <div className="flex items-center justify-between px-3 h-10 bg-[#F8F9FA] border-b border-[#E9ECEF] select-none shrink-0">
+      <div className="flex items-center justify-between px-2 sm:px-3 h-9 sm:h-10 bg-[#F8F9FA] border-b border-[#E9ECEF] select-none shrink-0 overflow-x-auto">
         {/* ── Left: Controls ───────────────────────────────────────────── */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1 sm:gap-2 shrink-0">
           {/* Stop button */}
           <button
             title="Stop"
@@ -468,10 +471,10 @@ export default function HomePage() {
             </svg>
           </button>
 
-          {/* Build Simulatable Part button */}
+          {/* Build Simulatable Part button - hidden on mobile */}
           <button
             onClick={() => showToast('Build coming soon')}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-[#4361EE] text-white hover:bg-[#3a56d4] transition-colors ml-1"
+            className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-[#4361EE] text-white hover:bg-[#3a56d4] transition-colors ml-1"
           >
             Build Simulatable Part
           </button>
@@ -494,7 +497,7 @@ export default function HomePage() {
             )}
           </button>
 
-          {/* Search */}
+          {/* Search button */}
           <button
             title="Search"
             onClick={() => showToast('Search coming soon')}
@@ -508,22 +511,22 @@ export default function HomePage() {
         </div>
 
         {/* ── Right: Elapsed time + Speed ──────────────────────────────── */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
           {/* Running indicator */}
           {simulation.isRunning && (
             <span className="flex items-center gap-1.5 text-[10px] text-[#4361EE] font-medium">
               <span className="h-1.5 w-1.5 rounded-full bg-[#4361EE] animate-pulse" />
-              Running
+              <span className="hidden sm:inline">Running</span>
             </span>
           )}
 
           {/* Elapsed time (monospace) */}
-          <div className="flex items-center gap-1 px-2 py-1 rounded-md bg-gray-100 text-[10px] font-mono text-gray-500 tabular-nums">
+          <div className="flex items-center gap-1 px-1.5 sm:px-2 py-1 rounded-md bg-gray-100 text-[10px] font-mono text-gray-500 tabular-nums">
             {(elapsedTime ?? 0).toFixed(3)}s
           </div>
 
           {/* Speed percentage */}
-          <div className="flex items-center gap-1 px-2 py-1 rounded-md bg-gray-100 text-[10px] font-mono text-gray-500">
+          <div className="hidden sm:flex items-center gap-1 px-2 py-1 rounded-md bg-gray-100 text-[10px] font-mono text-gray-500">
             {Math.round((speed ?? 1) * 100)}%
           </div>
         </div>
@@ -532,12 +535,12 @@ export default function HomePage() {
       {/* ═══════════════════════════════════════════════════════════════════
           MAIN CONTENT AREA
           ═══════════════════════════════════════════════════════════════════ */}
-      <div className="flex-1 flex overflow-hidden">
-        {/* Left sidebar: Component Palette (visible when toggled on) */}
+      <div className="flex-1 flex overflow-hidden relative">
+        {/* Left sidebar: Component Palette (full overlay on mobile, side panel on desktop) */}
         {showPalette && (activeTab === 'design' || activeTab === 'simulate') && <ComponentPalette />}
 
         {/* Center content: switched by active tab */}
-        <div className="flex-1 flex flex-col overflow-hidden">
+        <div className="flex-1 flex flex-col overflow-hidden min-w-0">
           {activeTab === 'design' && <CanvasWorkspace />}
 
           {activeTab === 'code' && <CodeEditorPanel />}
@@ -550,7 +553,7 @@ export default function HomePage() {
               </div>
               {/* Serial Monitor (bottom panel when toggled on) */}
               {showSerialMonitor && (
-                <div className="h-48 shrink-0">
+                <div className="h-36 sm:h-48 shrink-0">
                   <SerialMonitor />
                 </div>
               )}
@@ -562,23 +565,23 @@ export default function HomePage() {
       {/* ═══════════════════════════════════════════════════════════════════
           FOOTER — STATUS BAR
           ═══════════════════════════════════════════════════════════════════ */}
-      <footer className="flex items-center justify-between px-3 py-1 bg-[#F8F9FA] border-t border-[#E9ECEF] select-none shrink-0">
+      <footer className="flex items-center justify-between px-2 sm:px-3 py-1 bg-[#F8F9FA] border-t border-[#E9ECEF] select-none shrink-0">
         {/* Left: Brand + version */}
-        <div className="flex items-center gap-2 text-[10px]">
+        <div className="flex items-center gap-1 sm:gap-2 text-[10px] min-w-0">
           <span className="font-semibold text-gray-500">Eesha Learn</span>
-          <span className="text-gray-300">v2.1.0</span>
-          <span className="text-gray-200">|</span>
-          <span className="text-gray-400 font-mono">avr8js</span>
-          <span className="text-gray-200">·</span>
-          <span className="text-gray-400 font-mono">Arduino</span>
+          <span className="text-gray-300 hidden sm:inline">v2.1.0</span>
+          <span className="text-gray-200 hidden sm:inline">|</span>
+          <span className="text-gray-400 font-mono hidden md:inline">avr8js</span>
+          <span className="text-gray-200 hidden md:inline">·</span>
+          <span className="text-gray-400 font-mono hidden md:inline">Arduino</span>
         </div>
 
         {/* Right: Component count + Running/Idle status */}
-        <div className="flex items-center gap-3 text-[10px]">
-          <span className="text-gray-400">
+        <div className="flex items-center gap-2 sm:gap-3 text-[10px] shrink-0">
+          <span className="text-gray-400 hidden sm:inline">
             {components.length} component{components.length !== 1 ? 's' : ''}
           </span>
-          <span className="text-gray-200">|</span>
+          <span className="text-gray-200 hidden sm:inline">|</span>
           {simulation.isRunning ? (
             <span className="text-[#4361EE] flex items-center gap-1">
               <span className="h-1.5 w-1.5 rounded-full bg-[#4361EE] animate-pulse" />

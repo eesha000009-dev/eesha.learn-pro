@@ -140,6 +140,56 @@
   50% { opacity: 0.8; }
 }
 
+/* Slide-in animation for mobile palette */
+@keyframes slide-in-left {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+.animate-slide-in-left {
+  animation: slide-in-left 200ms ease-out;
+}
+
+/* Prevent overscroll bounce on iOS */
+html, body {
+  overscroll-behavior: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Ensure full viewport on mobile */
+body {
+  position: fixed;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+/* Touch-friendly scrolling for component lists */
+.overscroll-contain {
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Prevent text selection on UI chrome */
+header, footer, .select-none {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+
+/* Responsive scrollbar for light theme panels */
+.overflow-y-auto::-webkit-scrollbar-thumb {
+  background: #d1d5db;
+  border-radius: 3px;
+}
+.overflow-y-auto::-webkit-scrollbar-thumb:hover {
+  background: #9ca3af;
+}
+
 /* Collapsible open/close animations */
 .collapsible-content[data-state="open"] {
   animation: collapsible-down 200ms ease-out;

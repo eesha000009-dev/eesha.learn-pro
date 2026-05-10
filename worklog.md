@@ -131,3 +131,49 @@ Stage Summary:
 - New files: wire-utils.ts (orthogonal routing, auto-color, signal classification), pin-position.ts (position calculator, proximity detection)
 - Updated: types (WireEndpoint, Wire with waypoints/signalType), store (wire CRUD with cached positions, position recalculation), WireRenderer (orthogonal SVG paths), CanvasWorkspace (white bg, pin dots, highlight), page.tsx (light theme), CodeEditorPanel (light theme), ComponentPalette (light theme)
 - Zero lint errors, pushed to GitHub (commit f3ee1a9)
+---
+Task ID: 3
+Agent: Main Agent
+Task: Fix responsive design for all devices, pin-to-pin wiring on mobile/touch, and make components draggable
+
+Work Log:
+- Diagnosed pin-to-pin wiring failure on mobile: CanvasWorkspace only had mouse event handlers (onMouseDown/Move/Up), no touch handlers. Pins had small hit areas (r=4-5px) too small for touch. The handleMouseDown checked for data-pin-id attributes that didn't exist on rendered pins, causing it to always fall through to drag/pan mode.
+- Diagnosed component dragging issue on mobile: Same root cause — no touch event handlers, mouse events only fire with delay on touch devices.
+- Rewrote CanvasWorkspace.tsx with unified interaction system:
+  - Changed dragging/panning from useState to useRef (avoids re-renders, better perf)
+  - Created handleInteractionStart/Move/End functions used by both mouse and touch handlers
+  - Added onTouchStart/Move/End handlers with proper e.preventDefault()
+  - Added pinch-to-zoom support (two-finger gesture tracks distance delta)
+  - Added pin proximity detection using findClosestPin with generous threshold (max(20, 28/zoom) screen pixels)
+  - Pin proximity check runs FIRST in handleInteractionStart, before drag/pan — prevents canvas from stealing pin taps
+  - Added pinHandledRef to prevent double wire creation when both proximity detection and pin onClick fire
+  - Set touchAction:'none' on SVG to prevent browser default scroll/zoom
+  - Added animated pulsing highlight ring around target pin during wire creation
+  - Smart wire hint text changes to "Connect to [pinId]" when near a target pin
+- Rewrote page.tsx for responsive design:
+  - Header: logo text hidden on mobile (icon only), menu items hidden below md with hamburger button, tab labels hidden on smallest screens
+  - Toolbar: overflow-x-auto for horizontal scroll, "Build Simulatable Part" hidden below sm, speed percentage hidden below sm
+  - Footer: version/avr8js/Arduino labels hidden on small screens, component count hidden on mobile
+  - Right actions: Export/Share text labels hidden on small screens, Share button hidden below sm
+  - Component palette backdrop: full-screen overlay
+- Rewrote ComponentPalette.tsx for responsive behavior:
+  - Mobile: fixed position full-height overlay (w-72) with slide-in-left animation, backdrop overlay
+  - Desktop: relative position side panel (w-60) with no backdrop
+  - Touch-friendly button sizes (py-2 on mobile vs py-1.5 on desktop)
+  - overscroll-contain for iOS bounce prevention
+- Updated globals.css:
+  - Added slide-in-left keyframe animation
+  - Added overscroll-behavior:none for iOS
+  - Added body position:fixed for viewport lock
+  - Added overscroll-contain class for touch-friendly scrollable areas
+  - Added user-select:none and -webkit-touch-callout:none for UI chrome
+  - Added light theme scrollbar styles for scrollable panels
+
+Stage Summary:
+- Pin-to-pin wiring now works on ALL devices: desktop (mouse), tablet, and mobile (touch)
+- Components are draggable on all devices with proper touch support
+- Pinch-to-zoom added for mobile users
+- Responsive layout: clean on mobile (320px+), tablet, and desktop
+- Component palette: slide-in overlay on mobile, side panel on desktop
+- Lint passes clean (0 errors)
+- Page compiles successfully (GET / 200 in 1435ms)
