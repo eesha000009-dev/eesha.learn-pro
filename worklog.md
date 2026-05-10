@@ -114,3 +114,20 @@ Stage Summary:
 - Eesha Learn UI redesigned with professional two-row toolbar structure
 - Three files modified: page.tsx (535 insertions, 244 deletions), CanvasWorkspace.tsx, ComponentPalette.tsx
 - Zero lint errors, deployed to Render via GitHub push
+---
+Task ID: 2
+Agent: Main + Subagents
+Task: Carbon copy UI + pin-to-pin wiring system
+
+Work Log:
+- Analyzed reference image (hero-ldr-display-medium.png) — identified it as a LIGHT THEME app (#F8F9FA headers, white canvas, #4361EE blue accent)
+- Deep study of velxio wiring system: WireRenderer, WireLayer, wireUtils, pinPositionCalculator, pinOverlay, canvas interaction flow
+- Deep study of velxio component architecture: ComponentRegistry, Web Components, BoardOnCanvas, DynamicComponent, part simulation registry
+- Rewrote 9 files + created 2 new files (2,364 total lines)
+
+Stage Summary:
+- UI: Light theme carbon copy with File/Edit/View/Help menus, Design/Code/Simulate/Upload tabs, secondary toolbar with simulation controls
+- Wiring: Orthogonal Manhattan routing (horizontal-first), auto-color by signal type, pin dots on hover, pin highlight glow during wire creation, waypoint support
+- New files: wire-utils.ts (orthogonal routing, auto-color, signal classification), pin-position.ts (position calculator, proximity detection)
+- Updated: types (WireEndpoint, Wire with waypoints/signalType), store (wire CRUD with cached positions, position recalculation), WireRenderer (orthogonal SVG paths), CanvasWorkspace (white bg, pin dots, highlight), page.tsx (light theme), CodeEditorPanel (light theme), ComponentPalette (light theme)
+- Zero lint errors, pushed to GitHub (commit f3ee1a9)
