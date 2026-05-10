@@ -224,8 +224,8 @@ export function CanvasWorkspace() {
                   <rect
                     x={comp.x - 5}
                     y={comp.y - 5}
-                    width={290}
-                    height={310}
+                    width={300}
+                    height={223}
                     fill="transparent"
                     className="cursor-move"
                   />

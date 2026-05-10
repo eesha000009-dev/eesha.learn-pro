@@ -9,6 +9,39 @@ import { ComponentPalette } from '@/components/ComponentPalette';
 import { WIRE_COLORS } from '@/lib/component-defs';
 import type { ActiveTab } from '@/types';
 
+// ─── Toast notification ────────────────────────────────────────────────────
+let toastTimer: ReturnType<typeof setTimeout> | null = null;
+function showToast(msg: string) {
+  let el = document.getElementById('toast-msg');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'toast-msg';
+    el.style.cssText = 'position:fixed;bottom:56px;left:50%;transform:translateX(-50%) translateY(8px);background:#27272a;color:#e4e4e7;padding:6px 16px;border-radius:8px;font-size:12px;z-index:999;opacity:0;transition:opacity .2s,transform .2s;pointer-events:none;border:1px solid #3f3f46;';
+    document.body.appendChild(el);
+  }
+  el.textContent = msg;
+  el.style.opacity = '1';
+  el.style.transform = 'translateX(-50%) translateY(0)';
+  if (toastTimer) clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => {
+    el!.style.opacity = '0';
+    el!.style.transform = 'translateX(-50%) translateY(8px)';
+  }, 1800);
+}
+
+// ─── Toolbar Button ───────────────────────────────────────────────────────
+function ToolbarButton({ title, onClick, children }: { title: string; onClick: () => void; children: React.ReactNode }) {
+  return (
+    <button
+      title={title}
+      onClick={onClick}
+      className="flex items-center gap-1 px-2 py-1.5 rounded-lg text-xs text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800 transition-all"
+    >
+      {children}
+    </button>
+  );
+}
+
 const DEFAULT_SKETCH = `// Eesha Learn — Arduino Sketch
 // LED Blink on Pin 13
 
@@ -40,13 +73,19 @@ export default function HomePage() {
     speed,
     wireColor, setWireColor,
     components, editorTabs,
+    exportDiagram, importDiagram,
+    saveToLocalStorage, loadFromLocalStorage,
   } = useSimulatorStore();
 
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  // Initialize default project on first load
+  // Initialize project: try localStorage first, then fall back to defaults
+  const initialized = useRef(false);
   useEffect(() => {
-    if (editorTabs.length === 0) {
+    if (initialized.current) return;
+    initialized.current = true;
+    const loaded = loadFromLocalStorage();
+    if (!loaded && editorTabs.length === 0) {
       addEditorTab({
         id: 'sketch-1',
         name: 'sketch.ino',
@@ -55,7 +94,6 @@ export default function HomePage() {
         modified: false,
       });
       setActiveEditorTab('sketch-1');
-      // Add default Arduino board
       addComponent('arduino-uno', 200, 150);
     }
   }, []);
@@ -166,6 +204,90 @@ export default function HomePage() {
           {/* Divider */}
           <div className="w-px h-6 bg-zinc-800 mx-2" />
 
+          {/* File operations */}
+          <div className="flex items-center gap-0.5">
+            <ToolbarButton
+              title="Save project (Ctrl+S)"
+              onClick={() => { saveToLocalStorage(); showToast('Project saved'); }}
+            >
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" />
+                <polyline points="17 21 17 13 7 13 7 21" />
+                <polyline points="7 3 7 8 15 8" />
+              </svg>
+              <span className="hidden sm:inline">Save</span>
+            </ToolbarButton>
+            <ToolbarButton
+              title="Load project from browser storage"
+              onClick={() => {
+                const ok = loadFromLocalStorage();
+                showToast(ok ? 'Project loaded' : 'No saved project found');
+              }}
+            >
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                <polyline points="7 10 12 15 17 10" />
+                <line x1="12" y1="15" x2="12" y2="3" />
+              </svg>
+              <span className="hidden sm:inline">Load</span>
+            </ToolbarButton>
+          </div>
+
+          <div className="w-px h-6 bg-zinc-800 mx-1" />
+
+          {/* Import/Export diagram.json */}
+          <div className="flex items-center gap-0.5">
+            <ToolbarButton
+              title="Export diagram.json (Wokwi compatible)"
+              onClick={() => {
+                const json = exportDiagram();
+                const blob = new Blob([json], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'diagram.json';
+                a.click();
+                URL.revokeObjectURL(url);
+                showToast('Exported diagram.json');
+              }}
+            >
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                <polyline points="17 8 12 3 7 8" />
+                <line x1="12" y1="3" x2="12" y2="15" />
+              </svg>
+              <span className="hidden sm:inline">Export</span>
+            </ToolbarButton>
+            <label
+              title="Import diagram.json (Wokwi compatible)"
+              className="flex items-center gap-1 px-2 py-1.5 rounded-lg text-xs text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800 transition-all cursor-pointer"
+            >
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                <polyline points="7 10 12 15 17 10" />
+                <line x1="12" y1="15" x2="12" y2="3" />
+              </svg>
+              <span className="hidden sm:inline">Import</span>
+              <input
+                type="file"
+                accept=".json"
+                className="hidden"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (!file) return;
+                  const reader = new FileReader();
+                  reader.onload = (ev) => {
+                    const text = ev.target?.result as string;
+                    importDiagram(text);
+                    showToast('Imported diagram.json');
+                  };
+                  reader.readAsText(file);
+                  e.target.value = '';
+                }}
+              />
+            </label>
+          </div>
+
           {/* Tabs */}
           <div className="flex items-center bg-zinc-800/50 rounded-lg p-0.5 gap-0.5">
             {tabs.map((tab) => (
@@ -256,7 +378,7 @@ export default function HomePage() {
             </div>
           )}
 
-          <div className="w-px h-5 bg-zinc-800 mx-1" />
+          <div className="w-px h-6 bg-zinc-800 mx-1" />
 
           {/* Toggle palette */}
           <button

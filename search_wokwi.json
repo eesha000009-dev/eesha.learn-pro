@@ -1,0 +1,92 @@
+[
+  {
+    "url": "https://docs.wokwi.com/diagram-format",
+    "name": "diagram.json File Format - Wokwi Docs",
+    "snippet": "This file defines the components that will be used for the simulation, their properties, and the connections between the components. File structure​. The ... Missing: MIT license",
+    "host_name": "docs.wokwi.com",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://docs.wokwi.com/guides/diagram-editor",
+    "name": "Interactive Diagram Editor - Wokwi Docs",
+    "snippet": "The parts you copied are stored in your system clipboard in a JSON format, similar to the diagram.json format. To paste the parts you copied, click on the ... Missing: MIT license",
+    "host_name": "docs.wokwi.com",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://docs.wokwi.com/chips-api/chip-json",
+    "name": "Custom Chip Definition (JSON) - Wokwi Docs",
+    "snippet": "The pinout and properties of custom chips are defined in a Chip Definition JSON file. The file name should be <chip-name>.chip.json. Missing: MIT license",
+    "host_name": "docs.wokwi.com",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://github.com/wokwi/arduino-lcd-helloworld/blob/main/diagram.json",
+    "name": "diagram.json - wokwi/arduino-lcd-helloworld - GitHub",
+    "snippet": "wokwi/arduino-lcd-helloworld. Missing: MIT license definition",
+    "host_name": "github.com",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://wokwi.com/projects/420861483002420225",
+    "name": "diagram.json - Wokwi ESP32, STM32, Arduino Simulator",
+    "snippet": "Run IoT and embedded projects in your browser: ESP32, STM32, Arduino, Pi Pico, and more. No installation required! Missing: format specification MIT license definition",
+    "host_name": "wokwi.com",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://wokwi.com/projects/374742683866087425",
+    "name": "Multiple JSON format to one Object - Wokwi ESP32, STM32, Arduino",
+    "snippet": "Define a flexible data structure to store JSON data. struct MyData {. String name;. int age;. String city;. // Add more fields as needed. };. void setup() {. Missing: specification MIT license",
+    "host_name": "wokwi.com",
+    "rank": 5,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://wokwi.com/projects/326200012668142162",
+    "name": "json-file-parser.ino - Wokwi ESP32, STM32, Arduino Simulator",
+    "snippet": "Run IoT and embedded projects in your browser: ESP32, STM32, Arduino, Pi Pico, and more. No installation required! Missing: specification MIT license",
+    "host_name": "wokwi.com",
+    "rank": 6,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://wokwi.com/projects/388914200797816833",
+    "name": "diagram.json - Wokwi ESP32, STM32, Arduino Simulator",
+    "snippet": "Run IoT and embedded projects in your browser: ESP32, STM32, Arduino, Pi Pico, and more. No installation required!",
+    "host_name": "wokwi.com",
+    "rank": 7,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://wokwi.com/projects/454546876042329089",
+    "name": "json - Wokwi ESP32, STM32, Arduino Simulator",
+    "snippet": "Run IoT and embedded projects in your browser: ESP32, STM32, Arduino, Pi Pico, and more. No installation required!",
+    "host_name": "wokwi.com",
+    "rank": 8,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://github.com/wokwi/wokwi-cli",
+    "name": "Wokwi CLI - GitHub",
+    "snippet": "Diagram Linting. Validate your diagram.json file for errors and warnings: wokwi-cli lint. The linter checks for common issues like unknown part types, invalid ...",
+    "host_name": "github.com",
+    "rank": 9,
+    "date": "",
+    "favicon": ""
+  }
+]

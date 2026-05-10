@@ -1,5 +1,8 @@
 import type { ComponentDef, Pin } from '@/types';
 
+// Based on wokwi-elements (MIT License) - Copyright (c) 2020 Uri Shaked
+// https://github.com/wokwi/wokwi-elements
+
 // ─── Pin Helpers ──────────────────────────────────────────────────────────
 
 function dPin(id: string, label: string, offset: [number, number], side: Pin['side']): Pin {
@@ -16,43 +19,43 @@ function gndPin(id: string, label: string, offset: [number, number], side: Pin['
 }
 
 // ─── Arduino UNO ──────────────────────────────────────────────────────────
-// Pin layout matches the real Arduino UNO R3:
-// Left side (top to bottom): AREF, GND, 13, 12, 11, 10, 9, 8
-// Right side (top to bottom): 5V, 3.3V, RST, GND, GND, VIN, A0, A1, A2, A3, A4, A5
-// Board dimensions: ~68.6mm x 53.4mm -> we use ~280x210 px
+// Pin positions match the Wokwi SVG rendering (viewBox "-4 0 72.58 53.34" scaled ~4px/mm)
+// Board: 290px × 213px
+// Top pins (y=10): Digital 13–0 (left to right, matching Wokwi header layout)
+// Bottom pins (y=203): RESET, 3.3V, 5V, GND×2, VIN | A0–A5
 
 const ARDUINO_PINS: Pin[] = [
-  // Left side (Power header)
-  pwrPin('5v', '5V', [0, 20], 'left'),
-  pwrPin('3v3', '3.3V', [0, 40], 'left'),
-  dPin('rst', 'RST', [0, 60], 'left'),
-  gndPin('gnd1', 'GND', [0, 80], 'left'),
-  gndPin('gnd2', 'GND', [0, 100], 'left'),
-  pwrPin('vin', 'VIN', [0, 120], 'left'),
+  // Bottom side - Power header (left to right)
+  dPin('rst', 'RST', [138, 203], 'bottom'),
+  pwrPin('3v3', '3.3V', [148, 203], 'bottom'),
+  pwrPin('5v', '5V', [158, 203], 'bottom'),
+  gndPin('gnd1', 'GND', [168, 203], 'bottom'),
+  gndPin('gnd2', 'GND', [178, 203], 'bottom'),
+  pwrPin('vin', 'VIN', [189, 203], 'bottom'),
 
-  // Left side bottom - Analog pins
-  aPin('a0', 'A0', [0, 150], 'left'),
-  aPin('a1', 'A1', [0, 170], 'left'),
-  aPin('a2', 'A2', [0, 190], 'left'),
-  aPin('a3', 'A3', [0, 210], 'left'),
-  aPin('a4', 'A4/SDA', [0, 230], 'left'),
-  aPin('a5', 'A5/SCL', [0, 250], 'left'),
+  // Bottom side - Analog header
+  aPin('a0', 'A0', [219, 203], 'bottom'),
+  aPin('a1', 'A1', [229, 203], 'bottom'),
+  aPin('a2', 'A2', [239, 203], 'bottom'),
+  aPin('a3', 'A3', [249, 203], 'bottom'),
+  aPin('a4', 'A4/SDA', [260, 203], 'bottom'),
+  aPin('a5', 'A5/SCL', [270, 203], 'bottom'),
 
-  // Right side - Digital pins
-  dPin('d0', 'D0/RX', [280, 20], 'right'),
-  dPin('d1', 'D1/TX', [280, 40], 'right'),
-  dPin('d2', 'D2', [280, 60], 'right'),
-  dPin('d3', 'D3~', [280, 80], 'right'),
-  dPin('d4', 'D4', [280, 100], 'right'),
-  dPin('d5', 'D5~', [280, 120], 'right'),
-  dPin('d6', 'D6~', [280, 140], 'right'),
-  dPin('d7', 'D7', [280, 160], 'right'),
-  dPin('d8', 'D8', [280, 180], 'right'),
-  dPin('d9', 'D9~', [280, 200], 'right'),
-  dPin('d10', 'D10~', [280, 220], 'right'),
-  dPin('d11', 'D11~', [280, 240], 'right'),
-  dPin('d12', 'D12', [280, 260], 'right'),
-  dPin('d13', 'D13', [280, 280], 'right'),
+  // Top side - Digital pins (left to right matching Wokwi header)
+  dPin('d13', 'D13', [132, 10], 'top'),
+  dPin('d12', 'D12', [142, 10], 'top'),
+  dPin('d11', 'D11~', [152, 10], 'top'),
+  dPin('d10', 'D10~', [162, 10], 'top'),
+  dPin('d9', 'D9~', [172, 10], 'top'),
+  dPin('d8', 'D8', [182, 10], 'top'),
+  dPin('d7', 'D7', [199, 10], 'top'),
+  dPin('d6', 'D6~', [209, 10], 'top'),
+  dPin('d5', 'D5~', [219, 10], 'top'),
+  dPin('d4', 'D4', [229, 10], 'top'),
+  dPin('d3', 'D3~', [239, 10], 'top'),
+  dPin('d2', 'D2', [250, 10], 'top'),
+  dPin('d1', 'D1/TX', [260, 10], 'top'),
+  dPin('d0', 'D0/RX', [270, 10], 'top'),
 ];
 
 export const ARDUINO_UNO_DEF: ComponentDef = {
@@ -60,8 +63,8 @@ export const ARDUINO_UNO_DEF: ComponentDef = {
   name: 'Arduino UNO R3',
   category: 'board',
   description: 'ATmega328P-based development board',
-  width: 280,
-  height: 300,
+  width: 290,
+  height: 213,
   pins: ARDUINO_PINS,
   defaultX: 300,
   defaultY: 200,
@@ -70,8 +73,8 @@ export const ARDUINO_UNO_DEF: ComponentDef = {
 // ─── LED ───────────────────────────────────────────────────────────────────
 
 const LED_PINS: Pin[] = [
-  dPin('anode', 'Anode (+)', [20, 0], 'top'),
-  gndPin('cathode', 'Cathode (-)', [60, 0], 'top'),
+  dPin('anode', 'Anode (+)', [5, 30], 'bottom'),
+  gndPin('cathode', 'Cathode (-)', [15, 30], 'bottom'),
 ];
 
 const LED_DEF: ComponentDef = {
@@ -79,7 +82,7 @@ const LED_DEF: ComponentDef = {
   name: 'LED (Red)',
   category: 'passive',
   description: 'Standard red LED',
-  width: 40,
+  width: 20,
   height: 30,
   pins: LED_PINS,
   defaultX: 650,
@@ -107,8 +110,8 @@ const LED_YELLOW_DEF: ComponentDef = {
 // ─── Resistor ─────────────────────────────────────────────────────────────
 
 const RESISTOR_PINS: Pin[] = [
-  dPin('pin1', '1', [0, 15], 'left'),
-  dPin('pin2', '2', [80, 15], 'right'),
+  dPin('pin1', '1', [0, 1.5], 'left'),
+  dPin('pin2', '2', [15.6, 1.5], 'right'),
 ];
 
 const RESISTOR_DEF: ComponentDef = {
@@ -116,8 +119,8 @@ const RESISTOR_DEF: ComponentDef = {
   name: 'Resistor (220Ω)',
   category: 'passive',
   description: '220Ω resistor',
-  width: 80,
-  height: 30,
+  width: 16,
+  height: 3,
   pins: RESISTOR_PINS,
   defaultX: 550,
   defaultY: 300,
@@ -126,10 +129,10 @@ const RESISTOR_DEF: ComponentDef = {
 // ─── Push Button ──────────────────────────────────────────────────────────
 
 const BUTTON_PINS: Pin[] = [
-  dPin('pin1', '1', [10, 0], 'top'),
-  dPin('pin2', '2', [50, 0], 'top'),
-  dPin('pin3', '3', [10, 40], 'bottom'),
-  dPin('pin4', '4', [50, 40], 'bottom'),
+  dPin('pin1', '1', [0, 13], 'left'),
+  dPin('pin2', '2', [0, 35], 'left'),
+  dPin('pin3', '3', [48, 13], 'right'),
+  dPin('pin4', '4', [48, 35], 'right'),
 ];
 
 const BUTTON_DEF: ComponentDef = {
@@ -138,7 +141,7 @@ const BUTTON_DEF: ComponentDef = {
   category: 'passive',
   description: 'Momentary push button switch',
   width: 60,
-  height: 40,
+  height: 48,
   pins: BUTTON_PINS,
   defaultX: 600,
   defaultY: 400,
@@ -147,8 +150,8 @@ const BUTTON_DEF: ComponentDef = {
 // ─── Buzzer ───────────────────────────────────────────────────────────────
 
 const BUZZER_PINS: Pin[] = [
-  dPin('pos', '+', [20, 0], 'top'),
-  gndPin('neg', '-', [50, 0], 'top'),
+  dPin('pos', '+', [28.92, 80], 'bottom'),
+  gndPin('neg', '-', [39.08, 80], 'bottom'),
 ];
 
 const BUZZER_DEF: ComponentDef = {
@@ -156,8 +159,8 @@ const BUZZER_DEF: ComponentDef = {
   name: 'Piezo Buzzer',
   category: 'actuator',
   description: 'Active piezo buzzer',
-  width: 50,
-  height: 30,
+  width: 68,
+  height: 80,
   pins: BUZZER_PINS,
   defaultX: 650,
   defaultY: 500,
@@ -165,32 +168,13 @@ const BUZZER_DEF: ComponentDef = {
 
 // ─── LCD 16x2 ─────────────────────────────────────────────────────────────
 
-const LCD_PINS: Pin[] = [
-  dPin('vss', 'VSS', [0, 10], 'left'),
-  pwrPin('vdd', 'VDD', [0, 30], 'left'),
-  dPin('v0', 'V0', [0, 50], 'left'),
-  dPin('rs', 'RS', [0, 70], 'left'),
-  dPin('rw', 'RW', [0, 90], 'left'),
-  dPin('e', 'E', [0, 110], 'left'),
-  dPin('d0', 'D0', [0, 130], 'left'),
-  dPin('d1', 'D1', [0, 150], 'left'),
-  dPin('d2', 'D2', [0, 170], 'left'),
-  dPin('d3', 'D3', [0, 190], 'left'),
-  dPin('d4', 'D4', [0, 210], 'left'),
-  dPin('d5', 'D5', [0, 230], 'left'),
-  dPin('d6', 'D6', [0, 250], 'left'),
-  dPin('d7', 'D7', [0, 270], 'left'),
-  pwrPin('a', 'A', [0, 290], 'left'),
-  gndPin('k', 'K', [0, 310], 'left'),
-];
-
 const LCD_DEF: ComponentDef = {
   type: 'lcd-16x2',
   name: 'LCD 16x2 (I2C)',
   category: 'display',
   description: '16x2 character LCD with I2C backpack',
-  width: 120,
-  height: 320,
+  width: 80,
+  height: 40,
   pins: [
     pwrPin('vcc', 'VCC', [0, 20], 'left'),
     gndPin('gnd', 'GND', [0, 45], 'left'),
@@ -205,7 +189,7 @@ const LCD_DEF: ComponentDef = {
 
 const LDR_PINS: Pin[] = [
   dPin('pin1', '1', [15, 0], 'top'),
-  dPin('pin2', '2', [45, 0], 'top'),
+  dPin('pin2', '2', [25, 0], 'top'),
 ];
 
 const LDR_DEF: ComponentDef = {
@@ -213,8 +197,8 @@ const LDR_DEF: ComponentDef = {
   name: 'Photoresistor (LDR)',
   category: 'sensor',
   description: 'Light-dependent resistor',
-  width: 60,
-  height: 30,
+  width: 40,
+  height: 42,
   pins: LDR_PINS,
   defaultX: 600,
   defaultY: 250,
@@ -223,9 +207,10 @@ const LDR_DEF: ComponentDef = {
 // ─── DHT22 Sensor ─────────────────────────────────────────────────────────
 
 const DHT22_PINS: Pin[] = [
-  pwrPin('vcc', 'VCC', [20, 0], 'top'),
-  dPin('dat', 'DATA', [50, 0], 'top'),
-  gndPin('gnd', 'GND', [80, 0], 'top'),
+  pwrPin('vcc', 'VCC', [15, 95], 'top'),
+  dPin('dat', 'DATA', [26, 95], 'top'),
+  dPin('nc', 'NC', [36, 95], 'top'),
+  gndPin('gnd', 'GND', [46, 95], 'top'),
 ];
 
 const DHT22_DEF: ComponentDef = {
@@ -233,8 +218,8 @@ const DHT22_DEF: ComponentDef = {
   name: 'DHT22 Temp/Humidity',
   category: 'sensor',
   description: 'Temperature and humidity sensor',
-  width: 80,
-  height: 40,
+  width: 60,
+  height: 96,
   pins: DHT22_PINS,
   defaultX: 650,
   defaultY: 400,
@@ -243,9 +228,9 @@ const DHT22_DEF: ComponentDef = {
 // ─── Servo Motor ──────────────────────────────────────────────────────────
 
 const SERVO_PINS: Pin[] = [
-  pwrPin('vcc', 'VCC (Red)', [20, 0], 'top'),
-  dPin('sig', 'Signal (Orange)', [50, 0], 'top'),
-  gndPin('gnd', 'GND (Brown)', [80, 0], 'top'),
+  gndPin('gnd', 'GND', [8.18, 51.89], 'left'),
+  pwrPin('vcc', 'VCC', [8.18, 61.44], 'left'),
+  dPin('sig', 'PWM', [8.18, 70.99], 'left'),
 ];
 
 const SERVO_DEF: ComponentDef = {
@@ -253,8 +238,8 @@ const SERVO_DEF: ComponentDef = {
   name: 'Servo Motor (SG90)',
   category: 'actuator',
   description: 'Standard servo motor',
-  width: 80,
-  height: 50,
+  width: 180,
+  height: 120,
   pins: SERVO_PINS,
   defaultX: 700,
   defaultY: 350,
@@ -263,9 +248,9 @@ const SERVO_DEF: ComponentDef = {
 // ─── Potentiometer ────────────────────────────────────────────────────────
 
 const POT_PINS: Pin[] = [
-  dPin('pin1', '1', [0, 15], 'left'),
-  dPin('wiper', 'Wiper', [45, 30], 'bottom'),
-  dPin('pin3', '3', [90, 15], 'right'),
+  gndPin('gnd', 'GND', [30.72, 72], 'bottom'),
+  dPin('sig', 'SIG', [40.88, 72], 'bottom'),
+  pwrPin('vcc', 'VCC', [51.04, 72], 'bottom'),
 ];
 
 const POT_DEF: ComponentDef = {
@@ -273,8 +258,8 @@ const POT_DEF: ComponentDef = {
   name: 'Potentiometer (10kΩ)',
   category: 'passive',
   description: '10kΩ rotary potentiometer',
-  width: 90,
-  height: 30,
+  width: 80,
+  height: 80,
   pins: POT_PINS,
   defaultX: 550,
   defaultY: 450,
@@ -283,10 +268,10 @@ const POT_DEF: ComponentDef = {
 // ─── RGB LED ──────────────────────────────────────────────────────────────
 
 const RGB_LED_PINS: Pin[] = [
-  dPin('red', 'R', [10, 0], 'top'),
-  gndPin('gnd', 'GND', [35, 0], 'top'),
-  dPin('green', 'G', [60, 0], 'top'),
-  dPin('blue', 'B', [85, 0], 'top'),
+  dPin('red', 'R', [10, 25], 'left'),
+  gndPin('gnd', 'GND', [20, 34], 'bottom'),
+  dPin('green', 'G', [30, 25], 'right'),
+  dPin('blue', 'B', [40, 25], 'right'),
 ];
 
 const RGB_LED_DEF: ComponentDef = {
@@ -294,20 +279,20 @@ const RGB_LED_DEF: ComponentDef = {
   name: 'RGB LED',
   category: 'passive',
   description: 'Common cathode RGB LED',
-  width: 80,
-  height: 30,
+  width: 45,
+  height: 35,
   pins: RGB_LED_PINS,
   defaultX: 650,
   defaultY: 500,
 };
 
-// ─── Ultrasonic Sensor (HC-SR04) ──────────────────────────────────────────
+// ─── Ultrasonic Sensor (HC-SR04) ┐═══════════════════════════════════════
 
 const ULTRASONIC_PINS: Pin[] = [
-  pwrPin('vcc', 'VCC', [20, 0], 'top'),
-  dPin('trig', 'TRIG', [55, 0], 'top'),
-  dPin('echo', 'ECHO', [90, 0], 'top'),
-  gndPin('gnd', 'GND', [125, 0], 'top'),
+  pwrPin('vcc', 'VCC', [76, 104], 'bottom'),
+  dPin('trig', 'TRIG', [86, 104], 'bottom'),
+  dPin('echo', 'ECHO', [96, 104], 'bottom'),
+  gndPin('gnd', 'GND', [106, 104], 'bottom'),
 ];
 
 const ULTRASONIC_DEF: ComponentDef = {
@@ -315,8 +300,8 @@ const ULTRASONIC_DEF: ComponentDef = {
   name: 'HC-SR04 Ultrasonic',
   category: 'sensor',
   description: 'Ultrasonic distance sensor',
-  width: 140,
-  height: 40,
+  width: 180,
+  height: 110,
   pins: ULTRASONIC_PINS,
   defaultX: 600,
   defaultY: 550,

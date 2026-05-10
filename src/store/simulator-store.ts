@@ -12,6 +12,13 @@ import type {
 } from '@/types';
 import { BOARD_DEFINITIONS, COMPONENT_DEFINITIONS } from '@/lib/component-defs';
 import type { Pin } from '@/types';
+import {
+  exportToWokwiDiagram,
+  importFromWokwiDiagram,
+  buildProjectSave,
+  LS_KEY_EDITOR,
+} from '@/lib/diagram';
+import type { WokwiDiagram, ProjectSave } from '@/lib/diagram';
 
 interface SimulatorStore {
   // ─── Active Tab ──────────────────────────────────────────────────────────
@@ -79,6 +86,12 @@ interface SimulatorStore {
   // ─── Serial Monitor ──────────────────────────────────────────────────────
   showSerialMonitor: boolean;
   toggleSerialMonitor: () => void;
+
+  // ─── Import / Export ─────────────────────────────────────────────────────
+  exportDiagram: () => string;
+  importDiagram: (json: string) => void;
+  saveToLocalStorage: () => void;
+  loadFromLocalStorage: () => boolean;
 }
 
 const defaultSimulation: SimulationState = {
@@ -293,4 +306,69 @@ export const useSimulatorStore = create<SimulatorStore>((set, get) => ({
   togglePalette: () => set((s) => ({ showPalette: !s.showPalette })),
   showSerialMonitor: true,
   toggleSerialMonitor: () => set((s) => ({ showSerialMonitor: !s.showSerialMonitor })),
+
+  // ─── Import / Export ─────────────────────────────────────────────────────
+  exportDiagram: () => {
+    const { components, wires } = get();
+    const diagram = exportToWokwiDiagram(components, wires);
+    return JSON.stringify(diagram, null, 2);
+  },
+
+  importDiagram: (json: string) => {
+    try {
+      const diagram: WokwiDiagram = JSON.parse(json);
+      const { components, wires } = importFromWokwiDiagram(diagram);
+      set({
+        components,
+        wires,
+        selectedComponentId: null,
+        selectedWireId: null,
+        wireDraft: null,
+        simulation: { ...defaultSimulation },
+      });
+    } catch (e) {
+      console.error('[importDiagram] Failed to parse diagram.json:', e);
+    }
+  },
+
+  saveToLocalStorage: () => {
+    const { components, wires, editorTabs } = get();
+    const save = buildProjectSave(
+      components,
+      wires,
+      editorTabs.map((t) => ({ id: t.id, name: t.name, language: t.language, content: t.content })),
+    );
+    try {
+      localStorage.setItem(LS_KEY_EDITOR, JSON.stringify(save));
+    } catch (e) {
+      console.error('[saveToLocalStorage] Failed:', e);
+    }
+  },
+
+  loadFromLocalStorage: () => {
+    try {
+      const raw = localStorage.getItem(LS_KEY_EDITOR);
+      if (!raw) return false;
+      const save: ProjectSave = JSON.parse(raw);
+      const { components, wires } = importFromWokwiDiagram(save.diagram);
+      set({
+        components,
+        wires,
+        editorTabs: (save.editorTabs || []).map((t) => ({
+          ...t,
+          language: t.language as EditorTab['language'],
+          modified: false,
+        })),
+        activeEditorTabId: save.editorTabs?.[0]?.id ?? null,
+        selectedComponentId: null,
+        selectedWireId: null,
+        wireDraft: null,
+        simulation: { ...defaultSimulation },
+      });
+      return true;
+    } catch (e) {
+      console.error('[loadFromLocalStorage] Failed:', e);
+      return false;
+    }
+  },
 }));

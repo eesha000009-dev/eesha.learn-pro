@@ -1,6 +1,9 @@
+// Based on wokwi-elements (MIT License) - Copyright (c) 2020 Uri Shaked
+// https://github.com/wokwi/wokwi-elements
+
 'use client';
 
-import React from 'react';
+import React, { useState, useCallback } from 'react';
 
 interface ArduinoBoardSVGProps {
   x: number;
@@ -11,158 +14,495 @@ interface ArduinoBoardSVGProps {
   selected?: boolean;
 }
 
+// Board dimensions (Wokwi viewBox 72.58×53.34 mm × ~4 px/mm)
+const BOARD_W = 290;
+const BOARD_H = 213;
+
+// Pin positions in pixel coords relative to component origin
+// Top header pin Y (female header center at y≈2.54mm)
+const TOP_Y = 10;
+// Bottom header pin Y (female header center at y≈50.8mm)
+const BOT_Y = 203;
+
+// Digital pins (top header, left to right)
+const DIGITAL_PINS: { id: string; label: string; x: number; pwm?: boolean }[] = [
+  { id: 'd13', label: '13', x: 132 },
+  { id: 'd12', label: '12', x: 142 },
+  { id: 'd11', label: '11', x: 152, pwm: true },
+  { id: 'd10', label: '10', x: 162, pwm: true },
+  { id: 'd9', label: '9', x: 172, pwm: true },
+  { id: 'd8', label: '8', x: 182 },
+  { id: 'd7', label: '7', x: 199 },
+  { id: 'd6', label: '6', x: 209, pwm: true },
+  { id: 'd5', label: '5', x: 219, pwm: true },
+  { id: 'd4', label: '4', x: 229 },
+  { id: 'd3', label: '3', x: 239, pwm: true },
+  { id: 'd2', label: '2', x: 250 },
+  { id: 'd1', label: '1', x: 260 },
+  { id: 'd0', label: '0', x: 270 },
+];
+
+// Power + Analog pins (bottom header, left to right)
+const POWER_PINS: { id: string; label: string; x: number; type: string }[] = [
+  { id: 'rst', label: 'RST', x: 138, type: 'special' },
+  { id: '3v3', label: '3.3V', x: 148, type: 'power' },
+  { id: '5v', label: '5V', x: 158, type: 'power' },
+  { id: 'gnd1', label: 'GND', x: 168, type: 'ground' },
+  { id: 'gnd2', label: 'GND', x: 178, type: 'ground' },
+  { id: 'vin', label: 'VIN', x: 189, type: 'power' },
+];
+
+const ANALOG_PINS: { id: string; label: string; x: number }[] = [
+  { id: 'a0', label: 'A0', x: 219 },
+  { id: 'a1', label: 'A1', x: 229 },
+  { id: 'a2', label: 'A2', x: 239 },
+  { id: 'a3', label: 'A3', x: 249 },
+  { id: 'a4', label: 'A4', x: 260 },
+  { id: 'a5', label: 'A5', x: 270 },
+];
+
+const PIN_R = 5;
+
 export function ArduinoBoardSVG({ x, y, ledOn = false, powerLed = true, onPinClick, selected }: ArduinoBoardSVGProps) {
-  const handleClick = (pinId: string, absX: number, absY: number) => {
+  const [resetPressed, setResetPressed] = useState(false);
+
+  const handleClick = useCallback((pinId: string, absX: number, absY: number) => {
     onPinClick?.(pinId, absX, absY);
+  }, [onPinClick]);
+
+  const pinColor = (type: string) => {
+    switch (type) {
+      case 'power': return '#ef4444';
+      case 'ground': return '#555';
+      case 'analog': return '#0ea5e9';
+      case 'special': return '#a855f7';
+      default: return '#84cc16';
+    }
   };
 
   return (
     <g transform={`translate(${x}, ${y})`}>
-      {/* Board outline / PCB */}
-      <rect
-        x="-5" y="-5"
-        width="290" height="310"
-        rx="8" ry="8"
-        fill="#0078AA"
-        stroke="#005f88"
-        strokeWidth="2"
-        className={selected ? 'stroke-emerald-400' : ''}
-      />
+      {/* ─── Wokwi-quality SVG with viewBox ─── */}
+      <svg
+        viewBox="-4 0 72.58 53.34"
+        width={BOARD_W}
+        height={BOARD_H}
+        xmlns="http://www.w3.org/2000/svg"
+        style={{ fontSize: '2px', fontFamily: 'monospace', userSelect: 'none' } }
+      >
+        <defs>
+          {/* LED body definition */}
+          <g id="led-body" fill="#eee">
+            <rect x="0" y="0" height="1.2" width="2.6" fill="#c6c6c6" />
+            <rect x="0.6" y="-0.1" width="1.35" height="1.4" stroke="#aaa" strokeWidth="0.05" />
+          </g>
 
-      {/* PCB edge / FR4 */}
-      <rect x="0" y="0" width="280" height="300" rx="5" ry="5" fill="#0078AA" />
+          {/* LED glow filter */}
+          <filter id="ledFilter" x="-0.8" y="-0.8" height="2.2" width="2.8">
+            <feGaussianBlur stdDeviation="0.5" />
+          </filter>
 
-      {/* Mounting holes */}
-      <circle cx="15" cy="15" r="4" fill="#222" stroke="#444" strokeWidth="1" />
-      <circle cx="265" cy="15" r="4" fill="#222" stroke="#444" strokeWidth="1" />
-      <circle cx="15" cy="285" r="4" fill="#222" stroke="#444" strokeWidth="1" />
-      <circle cx="265" cy="285" r="4" fill="#222" stroke="#444" strokeWidth="1" />
+          {/* Female pin header pattern */}
+          <pattern id="pins-female" width="2.54" height="2.54" patternUnits="userSpaceOnUse">
+            <rect x="0" y="0" width="2.54" height="2.54" fill="#333" />
+            <rect x="1.079" y="0.896" width="0.762" height="0.762" fill="#191919" />
+            <path
+              transform="translate(1.079, 1.658) rotate(180 0 0)"
+              d="m 0 0 v 0.762 l 0.433,0.433 c 0.046,-0.046 0.074,-0.109 0.074,-0.179 v -1.27 c 0,-0.070 -0.028,-0.133 -0.074,-0.179 z"
+              opacity="0.25"
+            />
+            <path
+              transform="translate(1.841, 1.658) rotate(90 0 0)"
+              d="m 0 0 v 0.762 l 0.433,0.433 c 0.046,-0.046 0.074,-0.109 0.074,-0.179 v -1.27 c 0,-0.070 -0.028,-0.133 -0.074,-0.179 z"
+              style={{ opacity: 0.3, fill: '#fff' }}
+            />
+            <path
+              transform="translate(1.841, 0.896)"
+              d="m 0 0 v 0.762 l 0.433,0.433 c 0.046,-0.046 0.074,-0.109 0.074,-0.179 v -1.27 c 0,-0.070 -0.028,-0.133 -0.074,-0.179 z"
+              style={{ opacity: 0.15, fill: '#fff' }}
+            />
+            <path
+              transform="translate(1.079, 0.896) rotate(270 0 0)"
+              d="m 0 0 v 0.762 l 0.433,0.433 c 0.046,-0.046 0.074,-0.109 0.074,-0.179 v -1.27 c 0,-0.070 -0.028,-0.133 -0.074,-0.179 z"
+              opacity="0.35"
+            />
+          </pattern>
 
-      {/* USB-B connector */}
-      <rect x="-20" y="20" width="30" height="55" rx="3" fill="#aaa" stroke="#888" strokeWidth="1.5" />
-      <rect x="-15" y="28" width="20" height="40" rx="2" fill="#777" />
-      <text x="-5" y="52" textAnchor="middle" fill="#555" fontSize="7" fontFamily="monospace">USB</text>
+          {/* Male pin pattern for ICSP */}
+          <pattern id="pin-male" width="2.54" height="4.80" patternUnits="userSpaceOnUse">
+            <rect ry="0.3" rx="0.3" width="2.12" height="4.80" fill="#565656" />
+            <ellipse cx="1" cy="1.13" rx="0.5" ry="0.5" fill="#aaa" />
+            <ellipse cx="1" cy="3.67" rx="0.5" ry="0.5" fill="#aaa" />
+          </pattern>
 
-      {/* Power jack */}
-      <rect x="-15" y="90" width="25" height="40" rx="3" fill="#333" stroke="#555" strokeWidth="1" />
-      <circle cx="-2" cy="110" r="6" fill="#222" stroke="#444" strokeWidth="1" />
+          {/* MCU lead pattern */}
+          <pattern id="mcu-leads" width="2.54" height="0.508" patternUnits="userSpaceOnUse">
+            <path
+              d="M 0.254,0 C 0.114,0 0,0.114 0,0.254 v 0 c 0,0.139 0,0.253 0,0.253 h 1.523 c 0,0 0,-0.114 0,-0.253 v 0 C 1.523,0.114 1.409,0 1.269,0 Z"
+              fill="#ddd"
+            />
+          </pattern>
+        </defs>
 
-      {/* Reset button */}
-      <rect x="50" y="135" width="18" height="12" rx="2" fill="#c44" stroke="#933" strokeWidth="1" />
-      <rect x="53" y="137" width="12" height="8" rx="1" fill="#e55" />
+        {/* ═══ PCB Board Shape ═══ */}
+        <path
+          d="m0.999 0a1 1 0 0 0-0.999 0.999v51.34a1 1 0 0 0 0.999 0.999h64.04a1 1 0 0 0 0.999-0.999v-1.54l2.539-2.539v-32.766l-2.539-2.539v-11.43l-1.524-1.523zm14.078 0.835h0.325l0.212 0.041h0l0.105 0.021 0.300 0.124 0.270 0.180 0.229 0.229 0.180 0.270 0.017 0.042 0.097 0.234 0.01 0.023 0.050 0.252 0.013 0.066v0.325l-0.063 0.318-0.040 0.097-0.083 0.202-0 0.001-0.180 0.270-0.229 0.229-0.270 0.180-0.300 0.124-0.106 0.020-0.212 0.042h-0.325l-0.212-0.042-0.106-0.020-0.300-0.124-0.270-0.180-0.229-0.229-0.180-0.270-0 -0.001-0.083-0.202-0.040-0.097-0.063-0.318v-0.325l0.013-0.066 0.050-0.252 0.01-0.023 0.097-0.234 0.017-0.042 0.180-0.270 0.229-0.229 0.270-0.180 0.300-0.124 0.105-0.021zm50.799 15.239h0.325l0.212 0.042 0.105 0.021 0.300 0.124 0.270 0.180 0.229 0.229 0.180 0.270 0.014 0.035 0.110 0.264 0.01 0.051 0.053 0.267v0.325l-0.03 0.152-0.033 0.166-0.037 0.089-0.079 0.191-0 0.020-0.180 0.270-0.229 0.229-0.270 0.180-0.071 0.029-0.228 0.094-0.106 0.021-0.212 0.042h-0.325l-0.212-0.042-0.106-0.021-0.228-0.094-0.071-0.029-0.270-0.180-0.229-0.229-0.180-0.270-0 -0.020-0.079-0.191-0.036-0.089-0.033-0.166-0.030-0.152v-0.325l0.053-0.267 0.010-0.051 0.109-0.264 0.014-0.035 0.180-0.270 0.229-0.229 0.270-0.180 0.300-0.124 0.105-0.021zm0 27.94h0.325l0.180 0.036 0.138 0.027 0.212 0.087 0.058 0.024 0.029 0.012 0.270 0.180 0.229 0.229 0.180 0.270 0.124 0.300 0.063 0.319v0.325l-0.063 0.318-0.124 0.300-0.180 0.270-0.229 0.229-0.270 0.180-0.300 0.124-0.106 0.021-0.212 0.042h-0.325l-0.212-0.042-0.105-0.021-0.300-0.124-0.270-0.180-0.229-0.229-0.180-0.270-0.124-0.300-0.063-0.318v-0.325l0.063-0.319 0.124-0.300 0.180-0.270 0.229-0.229 0.270-0.180 0.029-0.012 0.058-0.024 0.212-0.087 0.137-0.027zm-52.07 5.080h0.325l0.212 0.041 0.106 0.021 0.300 0.124 0.270 0.180 0.229 0.229 0.121 0.182 0.058 0.087h0l0.114 0.275 0.01 0.023 0.063 0.318v0.325l-0.035 0.179-0.027 0.139-0.01 0.023-0.114 0.275h-0l-0.180 0.270-0.229 0.229-0.270 0.180-0.300 0.124-0.106 0.020-0.212 0.042h-0.325l-0.212-0.042-0.105-0.020-0.300-0.124-0.270-0.180-0.229-0.229-0.180-0.270-0.114-0.275-0.01-0.023-0.027-0.139-0.036-0.179v-0.325l0.063-0.318 0.01-0.023 0.114-0.275 0.058-0.087 0.121-0.182 0.229-0.229 0.270-0.180 0.300-0.124 0.105-0.021z"
+          fill="#2b6b99"
+        />
 
-      {/* ATmega328P chip */}
-      <rect x="80" y="100" width="65" height="75" rx="2" fill="#333" stroke="#555" strokeWidth="1" />
-      <circle cx="88" cy="110" r="3" fill="#555" />
-      {/* Chip pins (left) */}
-      {[0, 1, 2, 3, 4, 5, 6, 7].map((i) => (
-        <rect key={`cl-${i}`} x={75} y={107 + i * 8} width={5} height={2} fill="#aaa" />
-      ))}
-      {/* Chip pins (right) */}
-      {[0, 1, 2, 3, 4, 5, 6, 7].map((i) => (
-        <rect key={`cr-${i}`} x={145} y={107 + i * 8} width={5} height={2} fill="#aaa" />
-      ))}
-      {/* Chip pins (top) */}
-      {[0, 1, 2, 3, 4, 5].map((i) => (
-        <rect key={`ct-${i}`} x={90 + i * 10} y={95} width={2} height={5} fill="#aaa" />
-      ))}
-      {/* Chip pins (bottom) */}
-      {[0, 1, 2, 3, 4, 5].map((i) => (
-        <rect key={`cb-${i}`} x={90 + i * 10} y={175} width={2} height={5} fill="#aaa" />
-      ))}
-      <text x="112" y="142" textAnchor="middle" fill="#888" fontSize="5" fontFamily="monospace">ATmega</text>
-      <text x="112" y="150" textAnchor="middle" fill="#888" fontSize="5" fontFamily="monospace">328P</text>
+        {/* ═══ Reset Button ═══ */}
+        <rect x="3.816" y="1.4125" width="6.2151" height="6.0268" fill="#9b9b9b" />
+        <g fill="#e6e6e6">
+          <rect x="2.1368" y="1.954" width="1.695" height="0.84994" />
+          <rect x="2.121" y="3.8362" width="1.695" height="0.84994" />
+          <rect x="2.0974" y="5.8608" width="1.695" height="0.84994" />
+          <rect x="10.031" y="6.0256" width="1.695" height="0.84994" />
+          <rect x="10.008" y="1.9528" width="1.695" height="0.84994" />
+        </g>
+        <circle
+          cx="6.9619"
+          cy="4.5279"
+          r="1.5405"
+          fill="#960000"
+          stroke={resetPressed ? '#333' : '#777'}
+          strokeWidth="0.15"
+          onMouseDown={() => setResetPressed(true)}
+          onMouseUp={() => setResetPressed(false)}
+          onMouseLeave={() => setResetPressed(false)}
+        />
 
-      {/* Crystal oscillator */}
-      <rect x="160" y="120" width="16" height="8" rx="2" fill="#c0c0c0" stroke="#999" strokeWidth="0.5" />
+        {/* ═══ USB-B Connector ═══ */}
+        <g style={{ fill: '#b3b2b2', stroke: '#b3b2b2', strokeWidth: 0.01 }}>
+          <ellipse cx="3.84" cy="9.56" rx="1.12" ry="1.03" />
+          <ellipse cx="3.84" cy="21.04" rx="1.12" ry="1.03" />
+          <g fill="#000">
+            <rect width="11" height="11.93" x="-0.05" y="9.72" rx="0.2" ry="0.2" opacity="0.24" />
+          </g>
+          <rect x="-4" y="9.37" height="11.85" width="14.46" />
+          <rect x="-4" y="9.61" height="11.37" width="14.05" fill="#706f6f" />
+          <rect x="-4" y="9.71" height="11.17" width="13.95" fill="#9d9d9c" />
+        </g>
 
-      {/* ICSP header */}
-      <rect x="155" y="50" width="25" height="20" rx="1" fill="#222" stroke="#555" strokeWidth="1" />
-      {[0, 1, 2].map((i) => (
-        <circle key={`icsp-${i}`} cx={162 + i * 7} cy={57} r="2" fill="#daa520" />
-      ))}
-      {[0, 1, 2].map((i) => (
-        <circle key={`icsp2-${i}`} cx={162 + i * 7} cy={64} r="2" fill="#daa520" />
-      ))}
-      <text x="167" y="47" textAnchor="middle" fill="#888" fontSize="5" fontFamily="monospace">ICSP</text>
+        {/* ═══ DC Power Jack ═══ */}
+        <g strokeWidth="0.254" fill="black">
+          <path
+            d="m-2.58 48.53v2.289c0 0.279 0.228 0.508 0.508 0.508h1.722c0.279 0 0.508-0.228 0.508-0.508v-2.289z"
+            fill="#252728"
+            opacity="0.3"
+          />
+          <path
+            d="m11.334 42.946c0-0.558-0.509-1.016-1.132-1.016h-10.043v9.652h10.043c0.622 0 1.132-0.457 1.132-1.016z"
+            opacity="0.3"
+          />
+          <path
+            d="m-2.072 40.914c-0.279 0-0.507 0.204-0.507 0.454v8.435c0 0.279 0.228 0.507 0.507 0.507h1.722c0.279 0 0.507-0.228 0.507-0.507v-8.435c0-0.249-0.228-0.454-0.507-0.454z"
+          />
+          <path
+            d="m-2.58 48.784v1.019c0 0.279 0.228 0.508 0.508 0.508h1.722c0.279 0 0.508-0.228 0.508-0.508v-1.019z"
+            opacity="0.3"
+          />
+          <path
+            d="m11.334 43.327c0.139 0 0.254 0.114 0.254 0.254v4.064c0 0.139-0.114 0.254-0.254 0.254"
+          />
+          <path
+            d="m11.334 42.438c0-0.558-0.457-1.016-1.016-1.016h-10.16v8.382h10.16c0.558 0 1.016-0.457 1.016-1.016z"
+          />
+          <path
+            d="m10.064 49.804h-9.906v-8.382h1.880c-1.107 0-1.363 1.825-1.363 3.826 0 1.765 1.147 3.496 3.014 3.496h6.374z"
+            opacity="0.3"
+          />
+          <rect x="10.064" y="41.422" width="0.254" height="8.382" fill="#ffffff" opacity="0.2" />
+          <path
+            d="m10.318 48.744v1.059c0.558 0 1.016-0.457 1.016-1.016v-0.364c0 0.313-1.016 0.320-1.016 0.320z"
+            opacity="0.3"
+          />
+        </g>
 
-      {/* LEDs */}
-      {/* Power LED */}
-      <circle cx="60" cy="160" r="3" fill={powerLed ? '#22c55e' : '#166534'} className={powerLed ? 'animate-pulse' : ''} />
-      <text x="70" y="163" fill="#ccc" fontSize="5" fontFamily="monospace">PWR</text>
+        {/* ═══ Pin Headers ═══ */}
+        {/* Top header 1: A5, A4, AREF, GND, 13-8 (10 pins) */}
+        <g transform="translate(17.497 1.27)">
+          <rect width={0.38 + 2.54 * 10} height="2.54" fill="url(#pins-female)" />
+        </g>
+        {/* Top header 2: 7-0 (8 pins) */}
+        <g transform="translate(44.421 1.27)">
+          <rect width={0.38 + 2.54 * 8} height="2.54" fill="url(#pins-female)" />
+        </g>
+        {/* Bottom header 1: IOREF-RESET-3.3V-5V-GND-GND-VIN (8 pin slots) */}
+        <g transform="translate(26.641 49.53)">
+          <rect width={0.38 + 2.54 * 8} height="2.54" fill="url(#pins-female)" />
+        </g>
+        {/* Bottom header 2: A0-A5 (6 pins) */}
+        <g transform="translate(49.501 49.53)">
+          <rect width={0.38 + 2.54 * 6} height="2.54" fill="url(#pins-female)" />
+        </g>
 
-      {/* TX LED */}
-      <circle cx="60" cy="175" r="3" fill="#444" />
-      <text x="70" y="178" fill="#ccc" fontSize="5" fontFamily="monospace">TX</text>
+        {/* ═══ ATmega328P MCU ═══ */}
+        <g>
+          <path
+            d="m64.932 41.627h-36.72c-0.209 0-0.379-0.170-0.379-0.379v-8.545c0-0.209 0.170-0.379 0.379-0.379h36.72c0.209 0 0.379 0.170 0.379 0.379v8.545c0 0.209-0.169 0.379-0.379 0.379z"
+            fill="#292c2d"
+          />
+          <path
+            d="m65.019 40.397c0 0.279-0.228 0.508-0.508 0.508h-35.879c-0.279 0-0.507 0.025-0.507-0.254v-6.338c0-0.279 0.228-0.508 0.507-0.508h35.879c0.279 0 0.508 0.228 0.508 0.508z"
+            opacity="0.3"
+          />
+          <path
+            d="m65.019 40.016c0 0.279-0.228 0.508-0.508 0.508h-35.879c-0.279 0-0.507 0.448-0.507-0.508v-6.084c0-0.279 0.228-0.508 0.507-0.508h35.879c0.279 0 0.508 0.228 0.508 0.508z"
+            fill="#3c4042"
+          />
+          <rect
+            transform="translate(29.205, 32.778)"
+            fill="url(#mcu-leads)"
+            height="0.508"
+            width="35.56"
+          />
+          <rect
+            transform="translate(29.205, 41.159) scale(1 -1)"
+            fill="url(#mcu-leads)"
+            height="0.508"
+            width="35.56"
+          />
+          <g fill="#252728">
+            <circle cx="33.269" cy="36.847" r="1" />
+            <circle cx="59.939" cy="36.847" r="1" />
+            <path d="M65 38.05a1.13 1.13 0 010-2.26v2.27z" />
+          </g>
+        </g>
 
-      {/* RX LED */}
-      <circle cx="60" cy="190" r="3" fill="#444" />
-      <text x="70" y="193" fill="#ccc" fontSize="5" fontFamily="monospace">RX</text>
+        {/* ═══ ICSP Programming Header ═══ */}
+        <g transform="translate(14.1 4.4)">
+          <rect width="7" height="4.80" fill="url(#pin-male)" />
+        </g>
+        <g transform="translate(63 27.2) rotate(270 0 0)">
+          <rect width="7" height="4.80" fill="url(#pin-male)" />
+        </g>
 
-      {/* Built-in LED (D13) */}
-      <circle cx="60" cy="205" r="3" fill={ledOn ? '#ef4444' : '#7f1d1d'} />
-      <text x="70" y="208" fill="#ccc" fontSize="5" fontFamily="monospace">L</text>
+        {/* ═══ LEDs ═══ */}
+        {/* Power LED (ON) */}
+        <g transform="translate(57.3, 16.21)">
+          <use href="#led-body" />
+          {powerLed && (
+            <circle cx="1.3" cy="0.55" r="1.3" fill="#80ff80" filter="url(#ledFilter)" />
+          )}
+        </g>
+        <text fill="#fff">
+          <tspan x="60.88" y="17.5">ON</tspan>
+        </text>
 
-      {/* Arduino text */}
-      <text x="180" y="200" textAnchor="middle" fill="white" fontSize="14" fontFamily="Arial, sans-serif" fontWeight="bold" opacity="0.8">ARDUINO</text>
-      <text x="180" y="218" textAnchor="middle" fill="white" fontSize="11" fontFamily="Arial, sans-serif" fontWeight="bold" opacity="0.6">UNO R3</text>
+        {/* Built-in LED (L - D13) */}
+        <g transform="translate(26.87, 11.69)">
+          <use href="#led-body" />
+          {ledOn && (
+            <circle cx="1.3" cy="0.55" r="1.3" fill="#ff8080" filter="url(#ledFilter)" />
+          )}
+        </g>
 
-      {/* ─── LEFT PINS (Power + Analog) ─────────────────────── */}
-      {/* Power header */}
-      <text x="-12" y="23" textAnchor="middle" fill="#ccc" fontSize="6" fontFamily="monospace" fontWeight="bold">5V</text>
-      <circle cx="0" cy="20" r="4" fill="#ef4444" stroke="#fff" strokeWidth="1" opacity="0.9"
-        className="cursor-pointer hover:opacity-100 hover:scale-110 transition-transform"
-        onClick={() => handleClick('5v', x, y + 20)} />
+        {/* TX LED */}
+        <g transform="translate(26.9, 16.2)">
+          <use href="#led-body" />
+        </g>
 
-      <text x="-12" y="43" textAnchor="middle" fill="#ccc" fontSize="6" fontFamily="monospace" fontWeight="bold">3V</text>
-      <circle cx="0" cy="40" r="4" fill="#f97316" stroke="#fff" strokeWidth="1" opacity="0.9"
-        className="cursor-pointer hover:opacity-100"
-        onClick={() => handleClick('3v3', x, y + 40)} />
+        {/* RX LED */}
+        <g transform="translate(26.9, 18.5)">
+          <use href="#led-body" />
+        </g>
 
-      <text x="-12" y="63" textAnchor="middle" fill="#ccc" fontSize="6" fontFamily="monospace" fontWeight="bold">RST</text>
-      <circle cx="0" cy="60" r="4" fill="#a855f7" stroke="#fff" strokeWidth="1" opacity="0.9"
-        className="cursor-pointer hover:opacity-100"
-        onClick={() => handleClick('rst', x, y + 60)} />
+        {/* LED Labels */}
+        <text fill="#fff" style={{ textAnchor: 'end' }}>
+          <tspan x="26.5" y="13">L</tspan>
+          <tspan x="26.5" y="17.5">TX</tspan>
+          <tspan x="26.5" y="19.8">RX</tspan>
+          <tspan x="26.5" y="20">&#160;</tspan>
+        </text>
 
-      <text x="-12" y="83" textAnchor="middle" fill="#ccc" fontSize="6" fontFamily="monospace">GND</text>
-      <circle cx="0" cy="80" r="4" fill="#27272a" stroke="#fff" strokeWidth="1" opacity="0.9"
-        className="cursor-pointer hover:opacity-100"
-        onClick={() => handleClick('gnd1', x, y + 80)} />
+        {/* ═══ Top Pin Labels ═══ */}
+        <rect x="28.27" y="10.34" width="36.5" height="0.16" fill="#fff" />
+        <text fill="#fff" style={{ fontWeight: 900 }}>
+          <tspan x="40.84" y="9.48">DIGITAL (PWM ~)</tspan>
+        </text>
 
-      <text x="-12" y="103" textAnchor="middle" fill="#ccc" fontSize="6" fontFamily="monospace">GND</text>
-      <circle cx="0" cy="100" r="4" fill="#27272a" stroke="#fff" strokeWidth="1" opacity="0.9"
-        className="cursor-pointer hover:opacity-100"
-        onClick={() => handleClick('gnd2', x, y + 100)} />
+        {/* Rotated pin labels for top header */}
+        <text
+          transform="translate(22.6 4) rotate(270 0 0)"
+          fill="#fff"
+          style={{ fontSize: '2px', textAnchor: 'end', fontFamily: 'monospace' }}
+        >
+          <tspan x="0" dy="2.54">AREF</tspan>
+          <tspan x="0" dy="2.54">GND</tspan>
+          <tspan x="0" dy="2.54">13</tspan>
+          <tspan x="0" dy="2.54">12</tspan>
+          <tspan x="0" dy="2.54">~11</tspan>
+          <tspan x="0" dy="2.54">~10</tspan>
+          <tspan x="0" dy="2.54">~9</tspan>
+          <tspan x="0" dy="2.54">8</tspan>
+          <tspan x="0" dy="4.08">7</tspan>
+          <tspan x="0" dy="2.54">~6</tspan>
+          <tspan x="0" dy="2.54">~5</tspan>
+          <tspan x="0" dy="2.54">4</tspan>
+          <tspan x="0" dy="2.54">~3</tspan>
+          <tspan x="0" dy="2.54">2</tspan>
+          <tspan x="0" dy="2.54">TX→1</tspan>
+          <tspan x="0" dy="2.54">RX←0</tspan>
+          <tspan x="0" dy="2.54">&#160;</tspan>
+        </text>
 
-      <text x="-12" y="123" textAnchor="middle" fill="#ccc" fontSize="6" fontFamily="monospace" fontWeight="bold">VIN</text>
-      <circle cx="0" cy="120" r="4" fill="#ef4444" stroke="#fff" strokeWidth="1" opacity="0.9"
-        className="cursor-pointer hover:opacity-100"
-        onClick={() => handleClick('vin', x, y + 120)} />
+        {/* ═══ Bottom Pin Labels ═══ */}
+        <rect x="33.90" y="42.76" width="12.84" height="0.16" fill="#fff" />
+        <rect x="49.48" y="42.76" width="14.37" height="0.16" fill="#fff" />
+        <text fill="#fff" style={{ fontWeight: 900 }}>
+          <tspan x="41" y="44.96">POWER</tspan>
+          <tspan x="53.5" y="44.96">ANALOG IN</tspan>
+        </text>
 
-      {/* Analog header */}
-      {['A0', 'A1', 'A2', 'A3', 'A4', 'A5'].map((label, i) => (
-        <g key={label}>
-          <text x="-14" y={153 + i * 20} textAnchor="middle" fill="#22d3ee" fontSize="6" fontFamily="monospace" fontWeight="bold">{label}</text>
-          <circle cx={0} cy={150 + i * 20} r="4" fill="#0ea5e9" stroke="#fff" strokeWidth="1" opacity="0.9"
-            className="cursor-pointer hover:opacity-100"
-            onClick={() => handleClick(`a${i}`, x, y + 150 + i * 20)} />
+        {/* Rotated pin labels for bottom header */}
+        <text transform="translate(29.19 49) rotate(270 0 0)" fill="#fff" style={{ fontWeight: 700 }}>
+          <tspan x="0" dy="2.54">IOREF</tspan>
+          <tspan x="0" dy="2.54">RESET</tspan>
+          <tspan x="0" dy="2.54">3.3V</tspan>
+          <tspan x="0" dy="2.54">5V</tspan>
+          <tspan x="0" dy="2.54">GND</tspan>
+          <tspan x="0" dy="2.54">GND</tspan>
+          <tspan x="0" dy="2.54">Vin</tspan>
+          <tspan x="0" dy="4.54">A0</tspan>
+          <tspan x="0" dy="2.54">A1</tspan>
+          <tspan x="0" dy="2.54">A2</tspan>
+          <tspan x="0" dy="2.54">A3</tspan>
+          <tspan x="0" dy="2.54">A4</tspan>
+          <tspan x="0" dy="2.54">A5</tspan>
+        </text>
+
+        {/* ═══ Arduino Logo & UNO Text ═══ */}
+        <path
+          style={{ fill: 'none', stroke: '#fff', strokeWidth: 1.03 }}
+          d="m 34.21393,12.01079 c -1.66494,-0.13263 -3.06393,1.83547 -2.37559,3.36182 0.66469,1.65332 3.16984,2.10396 4.36378,0.77797 1.15382,-1.13053 1.59956,-2.86476 3.00399,-3.75901 1.43669,-0.9801 3.75169,-0.0547 4.02384,1.68886 0.27358,1.66961 -1.52477,3.29596 -3.15725,2.80101 -1.20337,-0.27199 -2.06928,-1.29866 -2.56193,-2.37788 -0.6046,-1.0328 -1.39499,-2.13327 -2.62797,-2.42367 -0.2191,-0.0497 -0.44434,-0.0693 -0.66887,-0.0691 z"
+        />
+        <path
+          style={{ fill: 'none', stroke: '#fff', strokeWidth: 0.56 }}
+          d="m 39.67829,14.37519 h 1.75141 m -0.89321,-0.8757 v 1.7514 m -7.30334,-0.8757 h 2.10166"
+        />
+        <text x="31" y="20.2" style={{ fontSize: '2.8px', fontWeight: 'bold', lineHeight: 1.25, fill: '#fff' }}>
+          ARDUINO
+        </text>
+
+        {/* UNO badge */}
+        <rect
+          style={{ fill: 'none', stroke: '#fff', strokeWidth: 0.1, strokeDasharray: '0.1, 0.1' }}
+          width="11"
+          height="5.45"
+          x="45.19"
+          y="11.83"
+          rx="1"
+          ry="1"
+        />
+        <text x="46.5" y="16" style={{ fontSize: '5px', lineHeight: 1.25 }} fill="#fff">UNO</text>
+      </svg>
+
+      {/* ═══ Selection Outline ═══ */}
+      {selected && (
+        <rect
+          x={-2}
+          y={-2}
+          width={BOARD_W + 4}
+          height={BOARD_H + 4}
+          rx={4}
+          fill="none"
+          stroke="#10b981"
+          strokeWidth={2}
+          strokeDasharray="6 3"
+          pointerEvents="none"
+        />
+      )}
+
+      {/* ═══ Interactive Pin Click Targets ═══ */}
+      {/* Digital pins (top) */}
+      {DIGITAL_PINS.map((pin) => (
+        <g key={pin.id}>
+          <circle
+            cx={pin.x}
+            cy={TOP_Y}
+            r={PIN_R}
+            fill="#84cc16"
+            stroke={selected ? '#10b981' : '#fff'}
+            strokeWidth={selected ? 2 : 1}
+            opacity={0.85}
+            className="cursor-pointer"
+            style={{ transition: 'opacity 0.15s, r 0.15s' }}
+            onClick={(e) => { e.stopPropagation(); handleClick(pin.id, x + pin.x, y + TOP_Y); }}
+          />
+          <text
+            x={pin.x}
+            y={TOP_Y - 8}
+            textAnchor="middle"
+            fill="#a3e635"
+            fontSize="5"
+            fontFamily="monospace"
+            fontWeight="bold"
+            style={{ pointerEvents: 'none' }}
+          >
+            {pin.pwm ? `${pin.label}~` : pin.label}
+          </text>
         </g>
       ))}
 
-      {/* ─── RIGHT PINS (Digital) ─────────────────────────── */}
-      {Array.from({ length: 14 }, (_, i) => {
-        const label = i === 0 ? 'D0' : i === 1 ? 'D1' : `${i}`;
-        const extra = i === 0 ? '/RX' : i === 1 ? '/TX' : [3, 5, 6, 9, 10, 11].includes(i) ? '~' : '';
-        return (
-          <g key={`d${i}`}>
-            <text x={292} y={23 + i * 20} textAnchor="middle" fill="#a3e635" fontSize="6" fontFamily="monospace" fontWeight="bold">{label}</text>
-            {extra && <text x={292} y={31 + i * 20} textAnchor="middle" fill="#65a30d" fontSize="5" fontFamily="monospace">{extra}</text>}
-            <circle cx={280} cy={20 + i * 20} r="4" fill="#84cc16" stroke="#fff" strokeWidth="1" opacity="0.9"
-              className="cursor-pointer hover:opacity-100"
-              onClick={() => handleClick(`d${i}`, x + 280, y + 20 + i * 20)} />
-          </g>
-        );
-      })}
+      {/* Power pins (bottom) */}
+      {POWER_PINS.map((pin) => (
+        <g key={pin.id}>
+          <circle
+            cx={pin.x}
+            cy={BOT_Y}
+            r={PIN_R}
+            fill={pinColor(pin.type)}
+            stroke={selected ? '#10b981' : '#fff'}
+            strokeWidth={selected ? 2 : 1}
+            opacity={0.85}
+            className="cursor-pointer"
+            style={{ transition: 'opacity 0.15s' }}
+            onClick={(e) => { e.stopPropagation(); handleClick(pin.id, x + pin.x, y + BOT_Y); }}
+          />
+          <text
+            x={pin.x}
+            y={BOT_Y + 14}
+            textAnchor="middle"
+            fill="#ccc"
+            fontSize="5"
+            fontFamily="monospace"
+            fontWeight="bold"
+            style={{ pointerEvents: 'none' }}
+          >
+            {pin.label}
+          </text>
+        </g>
+      ))}
+
+      {/* Analog pins (bottom) */}
+      {ANALOG_PINS.map((pin) => (
+        <g key={pin.id}>
+          <circle
+            cx={pin.x}
+            cy={BOT_Y}
+            r={PIN_R}
+            fill="#0ea5e9"
+            stroke={selected ? '#10b981' : '#fff'}
+            strokeWidth={selected ? 2 : 1}
+            opacity={0.85}
+            className="cursor-pointer"
+            style={{ transition: 'opacity 0.15s' }}
+            onClick={(e) => { e.stopPropagation(); handleClick(pin.id, x + pin.x, y + BOT_Y); }}
+          />
+          <text
+            x={pin.x}
+            y={BOT_Y + 14}
+            textAnchor="middle"
+            fill="#22d3ee"
+            fontSize="5"
+            fontFamily="monospace"
+            fontWeight="bold"
+            style={{ pointerEvents: 'none' }}
+          >
+            {pin.label}
+          </text>
+        </g>
+      ))}
     </g>
   );
 }

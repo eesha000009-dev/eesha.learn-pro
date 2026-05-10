@@ -1,0 +1,92 @@
+[
+  {
+    "url": "https://github.com/wokwi/wokwi-features/issues/191?timeline_page=1",
+    "name": "Addition of Stepper Motors as devices · Issue #191",
+    "snippet": "Sep 24, 2021 — I usually control stepper motors. These seem to be missing in Wokwi . I can see a few challenges to implement them. Read more",
+    "host_name": "github.com",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://docs.wokwi.com/parts/wokwi-arduino-uno",
+    "name": "wokwi-arduino-uno Reference",
+    "snippet": "Arduino Uno is the most popular board in the Arduino family. It is powered by the ATmega328p chip, which has 32K bytes of Flash program memory, 2k bytes of SRAM ... Missing: svg definition",
+    "host_name": "docs.wokwi.com",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://github.com/wokwi/wokwi-boards",
+    "name": "Custom board definitions for wokwi.com - GitHub",
+    "snippet": "Select the directory that contains the board definition files (board.json and board.svg); The board should load into Wokwi. Check the browser JavaScript ... Missing: uno | Show results with: uno",
+    "host_name": "github.com",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://docs.wokwi.com",
+    "name": "Wokwi Docs: Welcome to Wokwi!",
+    "snippet": "Wokwi is an online Electronics simulator. You can use it to simulate Arduino, ESP32, STM32, and many other popular boards, parts and sensors. Missing: svg | Show results with: svg",
+    "host_name": "docs.wokwi.com",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://docs.wokwi.com/diagram-format",
+    "name": "diagram.json File Format - Wokwi Docs",
+    "snippet": "Reference guide for the `diagram.json` file for Wokwi simulation projects. This file defines components, their attributes, layout positions, ... Missing: svg | Show results with: svg",
+    "host_name": "docs.wokwi.com",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://wokwi.com/features",
+    "name": "Wokwi Roadmap - Vote for new features",
+    "snippet": "Make it possible to create custom parts and program your own logic: 1. Define the pins for the part (e.g., for an I2C sensor: GND, VCC, SCL, SDA, INT) 2.",
+    "host_name": "wokwi.com",
+    "rank": 5,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://github.com/wokwi/wokwi-features/issues/302",
+    "name": "Interactive Part / Board editor (import graphics, define pins, use in",
+    "snippet": "A simple user interface for creating new parts for Wokwi: Import a graphics (SVG) file (in the future - perhaps fritzing file too); Mark the ... Missing: arduino- uno",
+    "host_name": "github.com",
+    "rank": 6,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://forum.arduino.cc/t/wokwi-simulator-custom-chips/1292759",
+    "name": "Wokwi Simulator Custom Chips - General Discussion - Arduino Forum",
+    "snippet": "The Frequency Counter can detect up to 8MHz from an simulated Uno, and the code in the sketch demonstrates a few methods of pulse generation.",
+    "host_name": "forum.arduino.cc",
+    "rank": 7,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.facebook.com/groups/wokwi/posts/1111254666153032",
+    "name": "Can I create custom elements for Wokwi? - Facebook",
+    "snippet": "The best bet right now is to use the Custom chip API: https://link.wokwi.com/custom-chips- alpha It allows you to create custom parts with ...",
+    "host_name": "www.facebook.com",
+    "rank": 8,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.youtube.com/watch?v=Tdwe1fO2Dnc",
+    "name": "Arduino Simulations in WOKWI - YouTube",
+    "snippet": "WOKWI, a great online simulator for C++ and python code and mechatronics systems is demonstrated in this video using an Arduino UNO example ... Missing: svg definition",
+    "host_name": "www.youtube.com",
+    "rank": 9,
+    "date": "",
+    "favicon": ""
+  }
+]
