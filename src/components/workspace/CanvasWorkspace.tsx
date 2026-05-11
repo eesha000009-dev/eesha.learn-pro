@@ -45,6 +45,7 @@ export function CanvasWorkspace() {
     startWireDraft, updateWireDraft, addWireWaypoint, cancelWireDraft, finishWireDraft,
     selectedComponentId, setSelectedComponent,
     selectedWireId, setSelectedWire,
+    removeWire, updateWireColor,
   } = useSimulatorStore();
 
   const { panOffset, zoom, showGrid, gridSize } = workspace;
@@ -99,13 +100,27 @@ export function CanvasWorkspace() {
 
     pinHandledRef.current = false;
 
-    // 2. Check if clicking on a component → start drag
+    // 2. Check if clicking on a wire → select it
+    if (target) {
+      const wireEl = target.closest('[data-wire-id]');
+      if (wireEl) {
+        const wireId = wireEl.getAttribute('data-wire-id');
+        if (wireId) {
+          store.setSelectedWire(store.selectedWireId === wireId ? null : wireId);
+          store.setSelectedComponent(null);
+          return;
+        }
+      }
+    }
+
+    // 3. Check if clicking on a component → start drag
     if (target) {
       const compData = target.closest('[data-component-id]');
       if (compData) {
         const compId = compData.getAttribute('data-component-id');
         if (compId) {
           store.setSelectedComponent(compId);
+          store.setSelectedWire(null);
           const comp = currentComponents.find((c) => c.id === compId);
           if (comp && !currentWireDraft) {
             draggingRef.current = { componentId: compId, offsetX: world.x - comp.x, offsetY: world.y - comp.y, hasMoved: false };
@@ -115,7 +130,7 @@ export function CanvasWorkspace() {
       }
     }
 
-    // 3. During wire creation, add waypoint on empty canvas
+    // 4. During wire creation, add waypoint on empty canvas
     if (currentWireDraft) {
       const closest = findClosestPin(world.x, world.y, currentComponents, threshold);
       if (closest) {
@@ -127,7 +142,7 @@ export function CanvasWorkspace() {
       return;
     }
 
-    // 4. Empty space → deselect & start panning
+    // 5. Empty space → deselect & start panning
     store.setSelectedComponent(null);
     store.setSelectedWire(null);
     panningRef.current = {
@@ -165,6 +180,8 @@ export function CanvasWorkspace() {
       const d = draggingRef.current;
       const world = clientToWorld(clientX, clientY, currentZoom, currentPanOffset);
       store.moveComponent(d.componentId, world.x - d.offsetX, world.y - d.offsetY);
+      // Update wire positions in real-time so wires follow the component
+      store.updateWirePositions(d.componentId);
       d.hasMoved = true;
       return;
     }
@@ -539,6 +556,45 @@ export function CanvasWorkspace() {
           })()}
         </div>
       )}
+
+      {/* Wire editing toolbar — shown when a wire is selected */}
+      {selectedWireId && !wireDraft && (() => {
+        const wire = wires.find(w => w.id === selectedWireId);
+        if (!wire) return null;
+        return (
+          <div className="absolute top-3 left-1/2 -translate-x-1/2 bg-white border border-gray-200 rounded-xl px-3 py-2 shadow-lg flex items-center gap-3 z-10">
+            {/* Color swatches */}
+            <div className="flex items-center gap-1.5">
+              {['#ef4444', '#1a1a1a', '#22c55e', '#3b82f6', '#f59e0b', '#8b5cf6', '#ec4899', '#14b8a6', '#6b7280'].map((c) => (
+                <button
+                  key={c}
+                  onClick={() => updateWireColor(selectedWireId, c)}
+                  className="w-5 h-5 rounded-full border-2 transition-transform hover:scale-110"
+                  style={{
+                    backgroundColor: c,
+                    borderColor: wire.color === c ? '#4361EE' : '#e5e7eb',
+                  }}
+                  aria-label={`Set wire color to ${c}`}
+                />
+              ))}
+            </div>
+
+            {/* Divider */}
+            <div className="w-px h-5 bg-gray-200" />
+
+            {/* Delete button */}
+            <button
+              onClick={() => { removeWire(selectedWireId); setSelectedWire(null); }}
+              className="flex items-center gap-1 text-xs text-red-500 hover:text-red-700 hover:bg-red-50 rounded px-2 py-1 transition-colors"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M3 6h18" /><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" /><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
+              </svg>
+              Delete
+            </button>
+          </div>
+        );
+      })()}
     </div>
   );
 }

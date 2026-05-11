@@ -204,3 +204,26 @@ Stage Summary:
 - Responsive design works on all device sizes from 320px to 2560px+
 - Drag-from-palette to canvas supported on desktop
 - All changes committed and pushed to GitHub
+---
+Task ID: 1
+Agent: Main Agent
+Task: Fix wire-to-component locking + Add wire editing (color/delete)
+
+Work Log:
+- Read and analyzed CanvasWorkspace.tsx, WireRenderer.tsx, simulator-store.ts, pin-position.ts, wire-utils.ts, types/index.ts
+- Identified root cause of wires detaching during drag: `updateWirePositions()` was only called in `handleInteractionEnd()` (drag end), NOT during `handleInteractionMove()` (drag move)
+- Added `store.updateWirePositions(d.componentId)` call inside the drag move handler so wires follow components in real-time
+- Added `updateWireColor(id, color)` action to the Zustand store
+- Added `data-wire-id` attribute to invisible hit-area path in WireRenderer for proper click detection
+- Added wire click detection as priority #2 in `handleInteractionStart` (between pin proximity and component click)
+- Added wire editing toolbar UI: color swatches (9 colors) + delete button, shown when a wire is selected
+- Made visible wire path pointer-events-none, moved all interactivity to invisible hit area (strokeWidth 12px for easy clicking)
+- Added hover detection (onMouseEnter/Leave) on the hit area path
+- Wire component clicks now also deselect selected wire and vice versa
+- Ran lint — all clean
+
+Stage Summary:
+- **Wire lock fix**: Wires now follow components in real-time during drag (not just at the end)
+- **Wire editing**: Click any wire to select it → toolbar appears at top with 9 color swatches + delete button
+- **Hit area improvement**: 12px invisible stroke makes wires easy to click/tap
+- Files modified: `src/components/workspace/CanvasWorkspace.tsx`, `src/components/workspace/WireRenderer.tsx`, `src/store/simulator-store.ts`

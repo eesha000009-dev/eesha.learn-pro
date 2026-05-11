@@ -54,6 +54,7 @@ interface SimulatorStore {
   wireColor: string;
   addWire: (from: { componentId: string; pinId: string }, to: { componentId: string; pinId: string }) => void;
   removeWire: (id: string) => void;
+  updateWireColor: (id: string, color: string) => void;
   startWireDraft: (componentId: string, pinId: string, startX: number, startY: number) => void;
   updateWireDraft: (x: number, y: number) => void;
   addWireWaypoint: (x: number, y: number) => void;
@@ -235,6 +236,11 @@ export const useSimulatorStore = create<SimulatorStore>((set, get) => ({
     set((s) => ({
       wires: s.wires.filter((w) => w.id !== id),
       selectedWireId: s.selectedWireId === id ? null : s.selectedWireId,
+    })),
+
+  updateWireColor: (id, color) =>
+    set((s) => ({
+      wires: s.wires.map((w) => (w.id === id ? { ...w, color } : w)),
     })),
 
   startWireDraft: (componentId, pinId, startX, startY) => {

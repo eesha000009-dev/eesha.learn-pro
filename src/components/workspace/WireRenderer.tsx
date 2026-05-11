@@ -38,7 +38,20 @@ export function WireRenderer({ wires, wireDraft, selectedWireId, onSelectWire, h
           strokeLinejoin="round"
           className="pointer-events-none"
         />
-        {/* Wire body */}
+        {/* Wire body — invisible wider hit area for easy clicking */}
+        <path
+          d={pathD}
+          fill="none"
+          stroke="transparent"
+          strokeWidth="12"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          style={{ cursor: 'pointer' }}
+          data-wire-id={wire.id}
+          onMouseEnter={() => onHoverWire(wire.id)}
+          onMouseLeave={() => onHoverWire(null)}
+        />
+        {/* Wire body — visible */}
         <path
           d={pathD}
           fill="none"
@@ -46,14 +59,8 @@ export function WireRenderer({ wires, wireDraft, selectedWireId, onSelectWire, h
           strokeWidth={isHovered ? 3.5 : 2.5}
           strokeLinecap="round"
           strokeLinejoin="round"
-          className="cursor-pointer transition-[stroke-width] duration-100"
+          className="pointer-events-none"
           style={{ transitionProperty: 'stroke-width', transitionDuration: '100ms' }}
-          onClick={(e) => {
-            e.stopPropagation();
-            onSelectWire(isSelected ? null : wire.id);
-          }}
-          onMouseEnter={() => onHoverWire(wire.id)}
-          onMouseLeave={() => onHoverWire(null)}
         />
         {/* Selected wire: dashed overlay */}
         {isSelected && (
