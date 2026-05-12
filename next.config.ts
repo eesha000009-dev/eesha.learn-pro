@@ -7,6 +7,8 @@ const nextConfig: NextConfig = {
     ignoreBuildErrors: true,
   },
   reactStrictMode: false,
+  // Transpile avr8js (ESM-only package) for client-side use
+  transpilePackages: ['avr8js'],
 };
 
 export default nextConfig;

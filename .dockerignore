@@ -13,6 +13,6 @@ download
 test
 prompt
 skills
-mini-services
+mini-services/*/node_modules
 db
 README.md

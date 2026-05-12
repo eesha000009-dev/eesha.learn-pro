@@ -7,6 +7,9 @@ import { CodeEditorPanel } from '@/components/CodeEditorPanel';
 import { SerialMonitor } from '@/components/SerialMonitor';
 import { ComponentPalette } from '@/components/ComponentPalette';
 import type { ActiveTab } from '@/types';
+import type { MCUSimulator, PinStateChange } from '@/lib/simulator/avr-simulator';
+import { createSimulator } from '@/lib/simulator/avr-simulator';
+import { propagatePinChange } from '@/lib/simulator/pin-propagator';
 
 // ─── Toast Notification ─────────────────────────────────────────────────────
 let toastTimer: ReturnType<typeof setTimeout> | null = null;
@@ -51,7 +54,7 @@ void loop() {
 `;
 
 // ─── Tab definitions ────────────────────────────────────────────────────────
-const tabs: { id: ActiveTab; label: string; icon: JSX.Element }[] = [
+const tabs: { id: ActiveTab; label: string; icon: React.ReactNode }[] = [
   {
     id: 'design',
     label: 'Design',
@@ -85,6 +88,10 @@ const tabs: { id: ActiveTab; label: string; icon: JSX.Element }[] = [
   },
 ];
 
+// ─── Simulation constants ──────────────────────────────────────────────────
+const CYCLES_PER_TICK = 500000; // CPU cycles per simulation tick (~4MHz effective)
+const TICK_INTERVAL_MS = 50;    // Run simulation tick every 50ms
+
 // ─── Main Page Component ────────────────────────────────────────────────────
 export default function HomePage() {
   const {
@@ -101,9 +108,8 @@ export default function HomePage() {
     addComponent,
     addEditorTab,
     setActiveEditorTab,
-    elapsedTime,
-    speed,
     components,
+    wires,
     editorTabs,
     exportDiagram,
     importDiagram,
@@ -111,14 +117,20 @@ export default function HomePage() {
     loadFromLocalStorage,
     workspace,
     setZoom,
+    setComponentPinValue,
+    updateComponentState,
+    addSerialOutput,
+    addError,
+    clearErrors,
   } = useSimulatorStore();
 
   const [showExportMenu, setShowExportMenu] = useState(false);
+  const [compileStatus, setCompileStatus] = useState<'idle' | 'compiling' | 'loaded' | 'error'>('idle');
   const exportMenuRef = useRef<HTMLDivElement>(null);
-
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const initialized = useRef(false);
-  const tickCount = useRef(0);
+  const simulatorRef = useRef<MCUSimulator | null>(null);
+  const boardIdRef = useRef<string | null>(null);
 
   // ─── Initialize project ─────────────────────────────────────────────────
   useEffect(() => {
@@ -138,33 +150,130 @@ export default function HomePage() {
     }
   }, []);
 
-  // ─── Mock simulation tick (LED blink) ──────────────────────────────────
-  const simulateTick = useCallback(() => {
-    tickCount.current++;
+  // ─── Pin change handler (called by avr8js when GPIO changes) ──────────
+  const handlePinChange = useCallback((changes: PinStateChange[]) => {
     const store = useSimulatorStore.getState();
-    const code = store.editorTabs.find((t) => t.language === 'arduino')?.content || '';
-    const arduinoComp = store.components.find((c) => c.defId === 'arduino-uno');
+    const boardId = boardIdRef.current;
+    if (!boardId) return;
 
-    if (arduinoComp && code.includes('digitalWrite(13')) {
-      const period = 20;
-      const isHigh = Math.floor(tickCount.current / period) % 2 === 0;
-      store.updateComponentState(arduinoComp.id, { ledOn: isHigh });
-      store.setComponentPinValue(arduinoComp.id, 'd13', isHigh ? 5 : 0);
+    for (const change of changes) {
+      // Update the MCU component's pin value in the store
+      store.setComponentPinValue(boardId, change.pinId, change.value);
+
+      // Update Arduino built-in LED state (pin 13)
+      if (change.pinId === 'd13') {
+        store.updateComponentState(boardId, { ledOn: change.value > 2.5 });
+      }
+
+      // Propagate through wires to connected components
+      propagatePinChange(
+        boardId,
+        change.pinId,
+        change.value,
+        store.wires,
+        store.components,
+        {
+          setComponentPinValue: store.setComponentPinValue,
+          updateComponentState: store.updateComponentState,
+        },
+      );
+    }
+  }, []);
+
+  // ─── Serial output handler (called by avr8js when UART transmits) ────
+  const handleSerialOutput = useCallback((line: string) => {
+    const store = useSimulatorStore.getState();
+    // Remove trailing \r\n and add to serial output
+    const clean = line.replace(/\r?\n$/, '');
+    if (clean) {
+      store.addSerialOutput(clean);
+    }
+  }, []);
+
+  // ─── Compile code and load into simulator ──────────────────────────────
+  const compileAndLoad = useCallback(async () => {
+    const store = useSimulatorStore.getState();
+    const code = store.editorTabs.find((t) => t.language === 'arduino')?.content;
+    const boardComp = store.components.find((c) => c.defId === 'arduino-uno');
+
+    if (!code) {
+      store.addError('No code to compile');
+      setCompileStatus('error');
+      return false;
     }
 
-    if (code.includes('Serial.println') && code.includes('LED ON') && tickCount.current % 20 === 0) {
-      const isHigh = Math.floor(tickCount.current / 20) % 2 === 0;
-      store.addSerialOutput(isHigh ? 'LED ON' : 'LED OFF');
+    if (!boardComp) {
+      store.addError('No Arduino board on the canvas. Add an Arduino UNO to the workspace.');
+      setCompileStatus('error');
+      return false;
     }
+
+    boardIdRef.current = boardComp.id;
+    setCompileStatus('compiling');
+    store.clearErrors();
+
+    try {
+      const res = await fetch('/api/compile?XTransformPort=3001', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code, boardType: 'arduino-uno' }),
+      });
+
+      const data = await res.json();
+
+      if (data.success && data.hex) {
+        // Create simulator and load hex
+        const simulator = createSimulator('arduino-uno');
+        simulator.load(data.hex);
+
+        // Hook up pin change listener
+        simulator.onPinChange(handlePinChange);
+
+        // Hook up serial output listener
+        simulator.onSerialTransmit(handleSerialOutput);
+
+        simulatorRef.current = simulator;
+        setCompileStatus('loaded');
+        return true;
+      } else {
+        // Compilation failed
+        const errors = data.errors || [];
+        if (errors.length > 0) {
+          for (const err of errors) {
+            store.addError(`Line ${err.line}: ${err.message}`);
+          }
+          showToast(`Compilation failed: ${errors[0].message}`);
+        } else {
+          store.addError('Compilation failed with unknown error');
+          showToast('Compilation failed');
+        }
+        setCompileStatus('error');
+        return false;
+      }
+    } catch (err: any) {
+      store.addError(`Compilation error: ${err.message || 'Network error'}`);
+      showToast('Failed to connect to compiler');
+      setCompileStatus('error');
+      return false;
+    }
+  }, [handlePinChange, handleSerialOutput]);
+
+  // ─── Real simulation tick using avr8js ────────────────────────────────
+  const simulateTick = useCallback(() => {
+    const sim = simulatorRef.current;
+    if (!sim) return;
+
+    // Run CPU cycles
+    sim.step(CYCLES_PER_TICK);
   }, []);
 
   // ─── Simulation interval ───────────────────────────────────────────────
   useEffect(() => {
-    if (simulation.isRunning && !simulation.isPaused) {
+    if (simulation.isRunning && !simulation.isPaused && compileStatus === 'loaded') {
       timerRef.current = setInterval(() => {
         useSimulatorStore.getState().tickElapsedTime();
         simulateTick();
-      }, 50);
+      }, TICK_INTERVAL_MS);
     } else {
       if (timerRef.current) {
         clearInterval(timerRef.current);
@@ -174,7 +283,7 @@ export default function HomePage() {
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
     };
-  }, [simulation.isRunning, simulation.isPaused, simulateTick]);
+  }, [simulation.isRunning, simulation.isPaused, compileStatus, simulateTick]);
 
   // ─── Close export dropdown on outside click ────────────────────────────
   useEffect(() => {
@@ -189,24 +298,45 @@ export default function HomePage() {
     }
   }, [showExportMenu]);
 
+  // ─── Cleanup simulator on unmount ──────────────────────────────────────
+  useEffect(() => {
+    return () => {
+      simulatorRef.current?.destroy();
+    };
+  }, []);
+
   // ─── Handlers ──────────────────────────────────────────────────────────
-  const handleStartStop = () => {
+  const handleStartStop = async () => {
     if (simulation.isRunning) {
+      // Stop simulation
       setRunning(false);
       setPaused(false);
-      tickCount.current = 0;
+      simulatorRef.current?.stop();
+      simulatorRef.current?.destroy();
+      simulatorRef.current = null;
+      setCompileStatus('idle');
     } else {
+      // Start: compile first, then simulate
       resetSimulation();
-      tickCount.current = 0;
-      setRunning(true);
+      clearErrors();
+
+      const success = await compileAndLoad();
+      if (success) {
+        setRunning(true);
+        // Switch to simulate tab to see results
+        setActiveTab('simulate');
+      }
     }
   };
 
   const handleReset = () => {
-    resetSimulation();
-    tickCount.current = 0;
     setRunning(false);
     setPaused(false);
+    simulatorRef.current?.stop();
+    simulatorRef.current?.destroy();
+    simulatorRef.current = null;
+    setCompileStatus('idle');
+    resetSimulation();
   };
 
   const handleExportJSON = () => {
@@ -327,7 +457,7 @@ export default function HomePage() {
 
         {/* ── Right group: Actions ─────────────────────────────────────── */}
         <div className="flex items-center gap-1 sm:gap-2 shrink-0">
-          {/* + Component AI button */}
+          {/* + Component button */}
           <button
             onClick={togglePalette}
             className="flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1.5 rounded-lg text-xs font-medium bg-[#4361EE] text-white hover:bg-[#3a56d4] transition-colors"
@@ -432,7 +562,7 @@ export default function HomePage() {
           {/* Stop button */}
           <button
             title="Stop"
-            onClick={handleStartStop}
+            onClick={handleReset}
             className="w-7 h-7 flex items-center justify-center rounded-full bg-gray-100 text-gray-500 hover:bg-gray-200 hover:text-gray-700 transition-colors"
           >
             <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
@@ -479,13 +609,24 @@ export default function HomePage() {
             Build Simulatable Part
           </button>
 
-          {/* Simulate (play) button */}
+          {/* Simulate (play/stop) button */}
           <button
             onClick={handleStartStop}
-            title={simulation.isRunning ? 'Stop simulation' : 'Start simulation'}
-            className="w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center rounded-full bg-[#4361EE] text-white hover:bg-[#3a56d4] transition-colors"
+            title={simulation.isRunning ? 'Stop simulation' : 'Compile & Run'}
+            disabled={compileStatus === 'compiling'}
+            className={`w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center rounded-full text-white transition-colors ${
+              compileStatus === 'compiling'
+                ? 'bg-amber-500 cursor-wait'
+                : simulation.isRunning
+                  ? 'bg-red-500 hover:bg-red-600'
+                  : 'bg-[#4361EE] hover:bg-[#3a56d4]'
+            }`}
           >
-            {simulation.isRunning ? (
+            {compileStatus === 'compiling' ? (
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" className="animate-spin">
+                <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" />
+              </svg>
+            ) : simulation.isRunning ? (
               <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
                 <rect x="6" y="4" width="4" height="16" />
                 <rect x="14" y="4" width="4" height="16" />
@@ -510,24 +651,36 @@ export default function HomePage() {
           </button>
         </div>
 
-        {/* ── Right: Elapsed time + Speed ──────────────────────────────── */}
+        {/* ── Right: Compile status + Elapsed time + Speed ─────────────── */}
         <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
-          {/* Running indicator */}
-          {simulation.isRunning && (
-            <span className="flex items-center gap-1.5 text-[10px] text-[#4361EE] font-medium">
-              <span className="h-1.5 w-1.5 rounded-full bg-[#4361EE] animate-pulse" />
+          {/* Compile status indicator */}
+          {compileStatus === 'compiling' && (
+            <span className="flex items-center gap-1.5 text-[10px] text-amber-600 font-medium">
+              <span className="h-1.5 w-1.5 rounded-full bg-amber-500 animate-pulse" />
+              <span className="hidden sm:inline">Compiling</span>
+            </span>
+          )}
+          {compileStatus === 'loaded' && simulation.isRunning && (
+            <span className="flex items-center gap-1.5 text-[10px] text-emerald-600 font-medium">
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
               <span className="hidden sm:inline">Running</span>
+            </span>
+          )}
+          {compileStatus === 'error' && !simulation.isRunning && (
+            <span className="flex items-center gap-1.5 text-[10px] text-red-500 font-medium">
+              <span className="h-1.5 w-1.5 rounded-full bg-red-500" />
+              <span className="hidden sm:inline">Error</span>
             </span>
           )}
 
           {/* Elapsed time (monospace) */}
           <div className="flex items-center gap-1 px-1.5 sm:px-2 py-1 rounded-md bg-gray-100 text-[10px] font-mono text-gray-500 tabular-nums">
-            {(elapsedTime ?? 0).toFixed(3)}s
+            {(simulation.elapsedTime ?? 0).toFixed(3)}s
           </div>
 
           {/* Speed percentage */}
           <div className="hidden sm:flex items-center gap-1 px-2 py-1 rounded-md bg-gray-100 text-[10px] font-mono text-gray-500">
-            {Math.round((speed ?? 1) * 100)}%
+            {Math.round((simulation.speed ?? 1) * 100)}%
           </div>
         </div>
       </div>
@@ -569,11 +722,11 @@ export default function HomePage() {
         {/* Left: Brand + version */}
         <div className="flex items-center gap-1 sm:gap-2 text-[10px] min-w-0">
           <span className="font-semibold text-gray-500">Eesha Learn</span>
-          <span className="text-gray-300 hidden sm:inline">v2.1.0</span>
+          <span className="text-gray-300 hidden sm:inline">v2.2.0</span>
           <span className="text-gray-200 hidden sm:inline">|</span>
           <span className="text-gray-400 font-mono hidden md:inline">avr8js</span>
           <span className="text-gray-200 hidden md:inline">·</span>
-          <span className="text-gray-400 font-mono hidden md:inline">Arduino</span>
+          <span className="text-gray-400 font-mono hidden md:inline">ATmega328P</span>
         </div>
 
         {/* Right: Component count + Running/Idle status */}

@@ -227,3 +227,29 @@ Stage Summary:
 - **Wire editing**: Click any wire to select it → toolbar appears at top with 9 color swatches + delete button
 - **Hit area improvement**: 12px invisible stroke makes wires easy to click/tap
 - Files modified: `src/components/workspace/CanvasWorkspace.tsx`, `src/components/workspace/WireRenderer.tsx`, `src/store/simulator-store.ts`
+---
+Task ID: 1
+Agent: main
+Task: Replace mock simulation with real avr8js engine — code compilation → hex → simulation → hardware response → serial monitor
+
+Work Log:
+- Analyzed entire project architecture: discovered /api/compile was a fake linter (hex: null), simulation was mock string.includes() pattern matching, avr8js was installed but never used
+- Created compile-service mini-service (mini-services/compile-service/index.ts) — real arduino-cli wrapper that accepts code, compiles to Intel HEX, returns hex string
+- Created Intel HEX parser (src/lib/simulator/hex-parser.ts) — converts .hex files to Uint16Array program memory for avr8js
+- Created pin mapping (src/lib/simulator/pin-map.ts) — maps Arduino pin IDs (d13, a0, etc.) to AVR port/bit (PORTB PB5, PORTC PC0, etc.) with extensible board support
+- Created AVR simulator engine (src/lib/simulator/avr-simulator.ts) — wraps avr8js with generic MCUSimulator interface: CPU + GPIO ports (B,C,D) + USART (Serial) + Timers (0,1,2) + Clock. Supports pin change listeners and serial output listeners.
+- Created pin propagation logic (src/lib/simulator/pin-propagator.ts) — propagates MCU pin voltage changes through wires to connected components (LEDs, buzzers, servos, etc.)
+- Updated /api/compile route to proxy to compile-service and return real hex output
+- Rewrote page.tsx: replaced mock simulateTick with real compile→load→simulate pipeline. Play button now: (1) compiles code via API, (2) loads hex into avr8js, (3) runs CPU cycles at 500K cycles/50ms tick, (4) GPIO changes propagate through wires, (5) UART serial output feeds to serial monitor
+- Updated Dockerfile: runner from Alpine to Debian-slim (glibc compat), installed arduino-cli + AVR core, created /app/.cache with proper permissions, runs compile-service alongside Next.js
+- Updated .dockerignore to include mini-services source (excluding node_modules)
+- Updated next.config.ts with transpilePackages for avr8js
+- Architecture is generic: MCUSimulator interface allows future ESP32, RP2040, STM32 simulators
+
+Stage Summary:
+- Replaced entire fake simulation pipeline with real avr8js-based simulation
+- Compile → hex → avr8js CPU → GPIO listeners → wire propagation → component state updates
+- Serial monitor now shows real UART output from compiled code
+- Arduino built-in LED (pin 13) now responds to actual compiled digitalWrite() calls
+- External LEDs/buzzers connected via wires respond to propagated voltage
+- Compile-service is a proper mini-service on port 3001
