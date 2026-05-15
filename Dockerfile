@@ -61,7 +61,6 @@ COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 # Copy compile-service (mini-service) directly from build context
 COPY --chown=nextjs:nodejs mini-services/compile-service/package.json /app/mini-services/compile-service/package.json
 COPY --chown=nextjs:nodejs mini-services/compile-service/index.ts /app/mini-services/compile-service/index.ts
-COPY --chown=nextjs:nodejs mini-services/compile-service/bun.lock /app/mini-services/compile-service/bun.lock
 
 # Install compile-service dependencies
 RUN cd /app/mini-services/compile-service && bun install --frozen-lockfile || bun install
