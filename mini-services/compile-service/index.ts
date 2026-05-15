@@ -71,11 +71,10 @@ serve({
         // Write the .ino file (filename must match folder name for Arduino CLI)
         await Bun.write(`${tmpDir}/sketch/sketch.ino`, code);
 
-        // Run arduino-cli compile
+        // Run arduino-cli compile (hex output is automatically generated in output-dir)
         const compile = Bun.spawn([
           'arduino-cli', 'compile',
           '--fqbn', board.fqbn,
-          '--format', 'hex',
           '--output-dir', tmpDir,
           tmpDir + '/sketch',
         ], {
@@ -114,9 +113,10 @@ serve({
             boardType,
           }, { headers: { 'Access-Control-Allow-Origin': '*' } });
         } else {
-          // Parse error lines from stderr
-          const errorLines = stderr.split('\n')
-            .filter(l => l.includes('error:') || l.includes('Error'))
+          // Parse error lines from stderr (and stdout as fallback)
+          const allOutput = (stderr + '\n' + stdout).split('\n');
+          const errorLines = allOutput
+            .filter(l => l.includes('error:') || l.includes('Error') || l.includes('fatal'))
             .map(l => {
               // Extract file:line:message pattern
               const match = l.match(/(?:sketch\.ino|\.ino):(\d+):\d+:\s*(?:error:\s*)?(.+)/i);
@@ -124,7 +124,16 @@ serve({
                 return { line: parseInt(match[1]), message: match[2].trim() };
               }
               return { line: 0, message: l.trim() };
-            });
+            })
+            .filter(l => l.message); // Remove empty entries
+
+          // If no errors parsed but compilation failed, include raw stderr
+          if (errorLines.length === 0) {
+            const fallbackMsg = exitCode === 0
+              ? 'Compilation succeeded but hex file not found'
+              : `Compilation failed (exit ${exitCode}): ${stderr.trim() || stdout.trim() || 'unknown error'}`;
+            errorLines.push({ line: 0, message: fallbackMsg });
+          }
 
           return Response.json({
             success: false,
